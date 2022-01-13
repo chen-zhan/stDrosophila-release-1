@@ -9,7 +9,6 @@ import PVGeo
 import matplotlib as mpl
 import seaborn as sns
 from anndata import AnnData
-from pandas import Series, DataFrame
 from typing import Union, Optional, Sequence, List
 
 
