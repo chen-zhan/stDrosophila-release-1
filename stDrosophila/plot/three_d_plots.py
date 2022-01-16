@@ -15,7 +15,16 @@ from typing import Optional, Sequence, Tuple, Union
 
 
 def clip_3d_coords(adata: AnnData, coordsby: str = "spatial") -> AnnData:
-    """Coordinate Preprocessing of 3D Models."""
+    """
+    Coordinate Preprocessing of 3D Models.
+
+    Args:
+        adata: AnnData object.
+        coordsby: The key from adata.obsm whose value will be used to reconstruct the 3D structure.
+
+    Returns:
+        clipped_adata: AnnData object that is clipped.
+    """
 
     bucket_xyz = adata.obsm[coordsby].astype(float)
     if isinstance(bucket_xyz, DataFrame):
@@ -45,7 +54,19 @@ def three_d_color(
     mask_color: Optional[str] = None,
     mask_alpha: Optional[float] = None,
 ) -> np.ndarray:
-    """Set the color of groups or gene expression."""
+    """
+    Set the color of groups or gene expression.
+
+    Args:
+        series: Pandas sereis (e.g. cell groups or gene names).
+        colormap: Colors to use for plotting data.
+        alphamap: The opacity of the color to use for plotting data.
+        mask_color: Colors to use for plotting mask information.
+        mask_alpha: The opacity of the color to use for plotting mask information.
+
+    Returns:
+        rgba: The rgba values mapped to groups or gene expression.
+    """
 
     color_types = series.unique().tolist()
     colordict = {}
@@ -77,7 +98,7 @@ def three_d_color(
     for t in color_types:
         colordict[t] = mpl.colors.to_rgba(colormap[t], alpha=alphamap[t])
     rgba = np.array([colordict[g] for g in series.tolist()])
-    print(rgba)
+
     return rgba
 
 
@@ -115,7 +136,7 @@ def build_three_d_model(
         mask_alpha: The opacity of the color to use for plotting mask. The default mask_alpha is `0.1`.
         smoothing: Smoothing the surface of the reconstructed 3D structure.
         voxelize: Voxelize the reconstructed 3D structure.
-        voxel_size: Voxel size. The default voxel_size is `[1, 1, 1]`.
+        voxel_size: Voxel size.
         unstructure: Convert pyvista.PolyData object to pyvista.UnstructuredGrid object.
 
     Returns:
