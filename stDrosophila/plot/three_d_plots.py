@@ -260,7 +260,10 @@ def compute_volume(
     """
 
     mesh = mesh.compute_cell_sizes(length=False, area=False, volume=True)
-    volume_data = pd.concat([pd.Series(mesh.cell_data["groups"]), pd.Series(mesh.cell_data["Volume"])], axis=1)
+    volume_data = pd.concat(
+        [pd.Series(mesh.cell_data["groups"]), pd.Series(mesh.cell_data["Volume"])],
+        axis=1,
+    )
 
     if group_show is not "all":
         group_show = [group_show] if isinstance(group_show, str) else group_show
@@ -430,4 +433,3 @@ def easy_three_d_plot(
             p.open_movie(save, framerate=framerate, quality=5)
         p.orbit_on_path(path, write_frames=True, viewup=(0, 0, 1), step=0.1)
         p.close()
-
