@@ -1,0 +1,30 @@
+
+
+### windows
+
+* geopandas (including geopandas, GDAL, Fiona)
+    1. pip install GDAL-3.3.3-cp37-cp37m-win_amd64.whl      (from https://www.lfd.uci.edu/~gohlke/pythonlibs/)
+    2. pip install Fiona-1.8.20-cp37-cp37m-win_amd64.whl    (from https://www.lfd.uci.edu/~gohlke/pythonlibs/)
+    3. pip install geopandas
+
+* jupyter
+    1. pip install jupyter
+
+* pytorch (including torch, torchvision, torchaudio)
+    1. pip3 install torch==1.10.1+cu113 torchvision==0.11.2+cu113 torchaudio===0.10.1+cu113 -f https://download.pytorch.org/whl/cu113/torch_stable.html
+
+* pyvista (including pyvista, imageio-ffmpeg, ipyvtklink, pythreejs)
+    1. pip install pyvista
+    2. pip install imageio-ffmpeg
+    3. pip install ipyvtklink
+    4. pip install pythreejs
+
+* scanpy (including scanpy, leidenalg, louvain, harmonypy, scanorama)
+    1. pip install scanpy
+    2. pip install leidenalg
+    3. pip install louvain
+    4. pip install harmonypy
+    5. pip install scanorama
+
+
+
