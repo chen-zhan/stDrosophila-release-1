@@ -1,2 +1,2 @@
-from .three_d_plot import *
+from .three_d_plots import *
 
