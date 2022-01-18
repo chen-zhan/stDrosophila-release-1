@@ -76,8 +76,3 @@ def lasso2adata(data : Optional[pd.DataFrame] = None,
     adata = ad.AnnData(csr_mat, obs=obs.copy(), var=var.copy(), obsm=obsm.copy())
 
     return adata
-
-file = "E:\BGI_Paper\L3_new\L3_b\lasso\lasso_L3_b_bin1\L3_b_S24_1.gem.gz"
-data = read_lasso(filename=file)
-adata = lasso2adata(data, slice="L3_b_S24", binsize=1, z=24, z_gap=4)
-

@@ -2,7 +2,7 @@ import os
 import pandas as pd
 
 
-def bin1tobinx(bin1_data, binx=None, save=None):
+def bin1tobinx(bin1_data, binx=None, save=None, save_format="gzip"):
     """
     Converts bin size from 1 to other bin size.
 
@@ -14,6 +14,8 @@ def bin1tobinx(bin1_data, binx=None, save=None):
         The size of bin after conversion.
     save: `str` (default: `None`)
         If save is not None, save is the path to save the lasso data.
+    save_format: `str` (default: `'gzip'`)
+        Saved file format.
 
     Examples
     --------
@@ -28,7 +30,10 @@ def bin1tobinx(bin1_data, binx=None, save=None):
     binx_data = binx_data.groupby(['x', 'y', 'geneID'])['MIDCounts'].sum().to_frame('MIDCounts').reset_index()
     binx_data = binx_data.reindex(columns=['geneID', 'x', 'y', 'MIDCounts'])
     if save is not None:
-        binx_data.to_csv(save, index=False, sep='\t')
+        if save_format == "gzip":
+            binx_data.to_csv(save, index=False, sep='\t', compression="gzip")
+        else:
+            binx_data.to_csv(save, index=False, sep='\t')
     return binx_data
 
 
