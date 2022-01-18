@@ -1,19 +1,23 @@
 
-import re
 import gzip
 import io
-import time
+import os
+import re
 import requests
+import time
+
 import numpy as np
 import pandas as pd
-from pandas import DataFrame
+
 from anndata import AnnData
-from typing import Optional, Union, Sequence
 import logging as logg
+from pandas import DataFrame
+from typing import Optional, Union, Sequence
 
 
 def symbol2fbgn(gene):
-    with gzip.open("../data/deml_fbgn.tsv.gz", "rb") as input_file:
+
+    with gzip.open("stDrosophila/data/deml_fbgn.tsv.gz", "rb") as input_file:
         with io.TextIOWrapper(input_file, encoding="utf-8") as dec:
             dec_list = [str(i).strip("\n").split("\t") for i in dec.readlines()]
     FBgn_datasets = pd.DataFrame(dec_list[1:], columns=dec_list[0], dtype=str)
@@ -48,7 +52,7 @@ def get_genesummary(data: DataFrame,
     if gene_nametype is "symbol":
         gene_names = [symbol2fbgn(gene_name) for gene_name in gene_names]
 
-    with gzip.open('../data/automated_gene_summaries.tsv.gz', 'rb') as input_file:
+    with gzip.open('stDrosophila/data/automated_gene_summaries.tsv.gz', 'rb') as input_file:
         with io.TextIOWrapper(input_file, encoding='utf-8') as dec:
             dec_list = [str(i).strip().split("\t") for i in dec.readlines() if i.startswith("#") is False]
     summaries = pd.DataFrame(dec_list, columns=["FlyBase ID", "gene_summary"])

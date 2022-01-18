@@ -1,4 +1,4 @@
-from .alignment import *
+from .alignment import slice_alignment, slice_alignment_bigBin
 from .cluster import *
-from .anno import *
-
+from .anno import anno_flyatlas2
+from .genes_anno import genes_flyaltas2
