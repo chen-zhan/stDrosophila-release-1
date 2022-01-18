@@ -13,10 +13,14 @@ def read_lasso(filename: Optional[str] = None):
 
     file_format = filename.split(".")[-1]
     if file_format == "gz":
+        """
+        old method:
         with gzip.open(filename, 'rb') as input_file:
             with io.TextIOWrapper(input_file, encoding='utf-8') as dec:
-                dec_list = [str(i).strip().split("\t") for i in dec.readlines()]
+                dec_list = [str(i).strip().split('\t') for i in dec.readlines()]
                 lasso_data = pd.DataFrame(dec_list[1:], columns=dec_list[0], dtype=str)
+        """
+        lasso_data = pd.read_csv(filename, sep="\t", compression="gzip")
     elif file_format in ["gem", "txt"]:
         lasso_data = pd.read_csv(filename, sep="\t")
     else:
@@ -35,7 +39,6 @@ def lasso2adata(data : Optional[pd.DataFrame] = None,
                 z: Union[int, float] = None,
                 z_gap: Union[int, float] = None,
                 ):
-    # get cell name
 
     data['x_ind'] = np.floor((data['x'].values - np.min(data['x'])) / binsize).astype(int)
     data['y_ind'] = np.floor((data['y'].values - np.min(data['y'])) / binsize).astype(int)
