@@ -69,8 +69,12 @@ def lasso2adata(data : Optional[pd.DataFrame] = None,
     var.set_index("gene_short_name", inplace=True)
 
     # obs
-    obs = pd.DataFrame({"cell_name": uniq_cell, "slice": [slice] * len(uniq_cell), "x": coords[:, 0],
-                        "y": coords[:, 1], "z": [z * 2 * z_gap / binsize] * len(uniq_cell)})
+    if z is not None and z_gap is not None:
+        obs = pd.DataFrame({"cell_name": uniq_cell, "slice": [slice] * len(uniq_cell), "x": coords[:, 0],
+                            "y": coords[:, 1], "z": [z * 2 * z_gap / binsize] * len(uniq_cell)})
+    else:
+        obs = pd.DataFrame({"cell_name": uniq_cell, "slice": [slice] * len(uniq_cell),
+                            "x": coords[:, 0], "y": coords[:, 1]})
     obs.set_index("cell_name", inplace=True)
 
     # obsm

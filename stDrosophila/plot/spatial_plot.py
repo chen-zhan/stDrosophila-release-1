@@ -32,7 +32,7 @@ def spatial_plot(adata: Union[AnnData, Sequence[AnnData]],
     sns.set(style="white")
     if cluster_col is None:
         for num, sub_adata in enumerate(adata_list):
-            ax = plt.subplot(ind_num, 4, num + 1)
+            ax = plt.subplot(ind_num, col_num, num + 1)
             sc.pl.spatial(sub_adata, spot_size=spot_size, show=False, ax=ax)
             ax.set_title(f"{sub_adata.obs[slice_col][0]}")
     else:

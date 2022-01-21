@@ -143,7 +143,7 @@ def pre_lasso(data,
               rectangle_crop=None,
               ehtranfer=None,
               color_flip=False,
-              gray_factor=20,
+              gray_factor=None,
               show=True,
               save_img=None,
               save_lasso=None):
@@ -183,10 +183,14 @@ def pre_lasso(data,
 
     raw_lasso = data.copy()
     data = data[["x", "y", "MIDCounts"]].groupby(["x", "y"])["MIDCounts"].sum().to_frame("MIDCounts").reset_index()
+
     lasso_mtx = pd.pivot_table(data, index=["y"], columns=["x"], values="MIDCounts", fill_value=0)
     if rectangle_crop is not None:
         lasso_mtx = lasso_mtx.iloc[rectangle_crop[0]:rectangle_crop[1], rectangle_crop[2]:rectangle_crop[3]]
-    new_lasso = filter_coords(raw_lasso=raw_lasso, filter_mtx=lasso_mtx)
+        new_lasso = filter_coords(raw_lasso=raw_lasso, filter_mtx=lasso_mtx)
+    else:
+        new_lasso = raw_lasso.copy()
+
     if save_lasso is not None:
         new_lasso.to_csv(save_lasso, sep="\t", index=False)
 

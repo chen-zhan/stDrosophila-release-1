@@ -2,12 +2,12 @@
 import numpy as np
 import cv2
 # load images
-base = cv2.imread("images/1.jpg")
-curr = cv2.imread("images/2.jpg")
+base = cv2.imread("/media/yao/Elements SE/BGI_Paper/Data/lasso_ssDNA_20211230/E5/E5_S3/image/E5_S3_photo.tif")
+curr = cv2.imread("/media/yao/Elements SE/BGI_Paper/Data/lasso_ssDNA_20211230/E5/E5_S3/image/E5_S3_lasso.tif")
 
 # convert to grayscale
 base_gray = cv2.cvtColor(base, cv2.COLOR_BGR2GRAY)
-
+print(base_gray)
 # find the coordinates of good features to track  in base
 base_features = cv2.goodFeaturesToTrack(base_gray, 3000, .01, 10)
 
