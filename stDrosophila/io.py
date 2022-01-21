@@ -11,40 +11,23 @@ from typing import Optional, Union
 
 def read_lasso(filename: Optional[str] = None):
 
-    file_format = filename.split(".")[-1]
-    if file_format == "gz":
-        """
-        old method:
-        with gzip.open(filename, 'rb') as input_file:
-            with io.TextIOWrapper(input_file, encoding='utf-8') as dec:
-                dec_list = [str(i).strip().split('\t') for i in dec.readlines()]
-                lasso_data = pd.DataFrame(dec_list[1:], columns=dec_list[0], dtype=str)
-        """
-        lasso_data = pd.read_csv(filename, sep="\t", compression="gzip")
-    elif file_format in ["gem", "txt"]:
-        lasso_data = pd.read_csv(filename, sep="\t")
-    else:
-        raise ValueError("The file format is wrong, the file format must be one of '.gz', '.txt' and '.gem'.")
-
+    lasso_data = pd.read_csv(filename, sep="\t")
     lasso_data["geneID"] = lasso_data.geneID.astype(str).str.strip('"')
     lasso_data["x"] = lasso_data["x"].astype(int)
     lasso_data["y"] = lasso_data["y"].astype(int)
     lasso_data["MIDCounts"] = lasso_data["MIDCounts"].astype(int)
+
     return lasso_data
 
 
 def lasso2adata(data : Optional[pd.DataFrame] = None,
-                binsize: Union[int, float] = None,
                 slice: Optional[str] = None,
                 z: Union[int, float] = None,
                 z_gap: Union[int, float] = None,
                 ):
 
-    data['x_ind'] = np.floor((data['x'].values - np.min(data['x'])) / binsize).astype(int)
-    data['y_ind'] = np.floor((data['y'].values - np.min(data['y'])) / binsize).astype(int)
-
-    data['x_centroid'] = data['x_ind'].values * binsize + binsize / 2
-    data['y_centroid'] = data['y_ind'].values * binsize + binsize / 2
+    data['x_ind'] = data['x'] - np.min(data['x'])
+    data['y_ind'] = data['y'] - np.min(data['y'])
 
     data['cell_name'] = data['x_ind'].astype(str) + '_' + data['y_ind'].astype(str)
 
@@ -55,13 +38,12 @@ def lasso2adata(data : Optional[pd.DataFrame] = None,
 
     data["csr_x_ind"] = data["cell_name"].map(cell_dict)
     data["csr_y_ind"] = data["geneID"].map(gene_dict)
-
     count_name = 'UMICount' if 'UMICount' in data.columns else 'MIDCounts'
     csr_mat = csr_matrix((data[count_name], (data["csr_x_ind"], data["csr_y_ind"])),
                          shape=(len(uniq_cell), len(uniq_gene)))
 
-    all_coords = data[['x_centroid', 'y_centroid', 'x', 'y']].drop_duplicates(inplace=False)
-    coords = all_coords[['x_centroid', 'y_centroid']].applymap(lambda coord: round(coord / binsize, 2)).values
+    all_coords = data[['x_ind', 'y_ind', 'x', 'y']].drop_duplicates(inplace=False)
+    coords = all_coords[['x_ind', 'y_ind']].values
     raw_coords = all_coords[['x', 'y']].values
 
     # var
@@ -71,7 +53,7 @@ def lasso2adata(data : Optional[pd.DataFrame] = None,
     # obs
     if z is not None and z_gap is not None:
         obs = pd.DataFrame({"cell_name": uniq_cell, "slice": [slice] * len(uniq_cell), "x": coords[:, 0],
-                            "y": coords[:, 1], "z": [z * 2 * z_gap / binsize] * len(uniq_cell)})
+                            "y": coords[:, 1], "z": [z * 2 * z_gap] * len(uniq_cell)})
     else:
         obs = pd.DataFrame({"cell_name": uniq_cell, "slice": [slice] * len(uniq_cell),
                             "x": coords[:, 0], "y": coords[:, 1]})
