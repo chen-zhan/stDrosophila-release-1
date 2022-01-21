@@ -34,7 +34,7 @@ if __name__ == "__main__":
         #     include_dirs=[np.get_include()],
         author="jiajun Yao",
         author_email="yaojiajun@genomics.cn",
-        description="Mapping Vector Field of Single Cells",
+        description="Analysis of Drosophila based on spatial transcriptome data",
         long_description=long_description,
         long_description_content_type="text/markdown",
         license="BSD",
