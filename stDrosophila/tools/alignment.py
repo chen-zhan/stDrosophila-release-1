@@ -33,7 +33,7 @@ def pairwise_align(slice1: AnnData,
         max number of iterations for cg.
     numItermaxEmd: `int` (default: `100000`)
         Max number of iterations for emd.
-    device: `str` or `torch.device` (default: `cpu`)
+    device: `str` or `torch.device` (default: `'cpu'`)
         Equipment used to run the program.
         Can also accept a torch.device. E.g.: torch.device('cuda:0')
 
@@ -96,7 +96,7 @@ def slice_alignment(slices,
         max number of iterations for cg.
     numItermaxEmd: `int` (default: `100000`)
         Max number of iterations for emd.
-    device: `str` or `torch.device` (default: `cpu`)
+    device: `str` or `torch.device` (default: `'cpu'`)
         Equipment used to run the program.
         Can also accept a torch.device. E.g.: torch.device('cuda:0')
     verbose: `bool` (default: `True`)

@@ -15,12 +15,9 @@ from pandas import DataFrame
 from typing import Optional, Union, Sequence
 
 
-def symbol2fbgn(gene):
+def symbol2fbgn(gene: Union[str, list] = None, datapath: Optional[str] = None):
 
-    with gzip.open("stDrosophila/data/deml_fbgn.tsv.gz", "rb") as input_file:
-        with io.TextIOWrapper(input_file, encoding="utf-8") as dec:
-            dec_list = [str(i).strip("\n").split("\t") for i in dec.readlines()]
-    FBgn_datasets = pd.DataFrame(dec_list[1:], columns=dec_list[0], dtype=str)
+    FBgn_datasets = pd.read_csv(datapath, sep="\t")
 
     if isinstance(gene, str):
         FBgn_data = FBgn_datasets[FBgn_datasets["Symbol"] == gene]
@@ -41,7 +38,8 @@ def symbol2fbgn(gene):
 
 def get_genesummary(data: DataFrame,
                     geneby: Optional[str] = None,
-                    gene_nametype: Optional[str] = "symbol"):
+                    gene_nametype: Optional[str] = "symbol",
+                    datapath: Optional[str] = None):
     """Get gene's summary from FlyBase.
     """
     avail_gene_nametypes = {"symbol", "FBgn"}
@@ -52,7 +50,7 @@ def get_genesummary(data: DataFrame,
     if gene_nametype is "symbol":
         gene_names = [symbol2fbgn(gene_name) for gene_name in gene_names]
 
-    with gzip.open('stDrosophila/data/automated_gene_summaries.tsv.gz', 'rb') as input_file:
+    with gzip.open(datapath, 'rb') as input_file:
         with io.TextIOWrapper(input_file, encoding='utf-8') as dec:
             dec_list = [str(i).strip().split("\t") for i in dec.readlines() if i.startswith("#") is False]
     summaries = pd.DataFrame(dec_list, columns=["FlyBase ID", "gene_summary"])
@@ -137,7 +135,7 @@ def gene2tissue(gene, stage, enrich_threshold):
 
 
 def anno_flyatlas2(adata: AnnData,
-                   stage: Optional[str] = None,
+                   stage: Optional[str] = 'male_adult',
                    gene_nametype: Optional[str] = "symbol",
                    groupby: Optional[str] = None,
                    groups: Union[str, Sequence[str]] = None,
@@ -147,7 +145,9 @@ def anno_flyatlas2(adata: AnnData,
                    obs_key: Optional[str] = "auto_anno",
                    key: Optional[str] = "rank_genes_groups",
                    key_added: Optional[str] = "marker_genes_anno",
-                   copy: bool = False
+                   copy: bool = False,
+                   gene_summaries_path: Optional[str] = 'automated_gene_summaries.tsv.gz',
+                   fbgn_path: Optional[str] = 'deml_fbgn.tsv.gz'
                    ):
     """\
     Annotate clustered groups based on FlyAtlas2.
@@ -156,10 +156,10 @@ def anno_flyatlas2(adata: AnnData,
     ----------
     adata: :class:`~anndata.AnnData`
         A clustered AnnData.
-    stage: `str` (default: `None`)
-        The developmental stages of Drosophila melanogaster, including `larval`, `female_adult` and `male_adult`.
-    gene_nametype : `str` (default: `symbol`)
-        Type of gene name, including `symbol` and `FBgn`.
+    stage: `str` (default: `'male_adult'`)
+        The developmental stages of Drosophila melanogaster, including `'larval'`, `'female_adult'` and `'male_adult'`.
+    gene_nametype : `str` (default: `'symbol'`)
+        Type of gene name, including `'symbol'` and `'FBgn'`.
     groupby: `str` (default: `None`)
         The key of the observation grouping to consider.
     groups: `str` (default: `None`)
@@ -170,14 +170,18 @@ def anno_flyatlas2(adata: AnnData,
         Threshold for filtering enrichment in FlyAtlas 2.
     add_genesummary: `bool` (default: `False`)
         Whether to add summaries of all genes to the output data.
-    obs_key: `str` (default: `auto_anno`)
+    obs_key: `str` (default: `'auto_anno'`)
         The key in `adata.obs` information is saved to.
-    key: `str` (default: `rank_genes_groups`)
+    key: `str` (default: `'rank_genes_groups'`)
         The key of the marker gene stored in the `adata.uns` information.
-    key_added: `str` (default: `marker_genes_anno`)
+    key_added: `str` (default: `'marker_genes_anno'`)
         The key in `adata.uns` information is saved to.
     copy: `bool` (default: `False`)
         Whether to copy adata or modify it inplace.
+    gene_summaries_path: `str` (default: `'automated_gene_summaries.tsv.gz'`)
+        Absolute path to the automated_gene_summaries.tsv.gz.
+    fbgn_path: `str` (default: `deml_fbgn.tsv.gz'`)
+        Absolute path to the deml_fbgn.tsv.gz.
 
     Returns
     -------
@@ -213,7 +217,7 @@ def anno_flyatlas2(adata: AnnData,
     for group_name in group_names:
         # The genes used to annotate groups
         gene_names = list(adata.uns[key]["names"][group_name][:n_genes])
-        fbgn_names = symbol2fbgn(gene_names) if gene_nametype is "symbol" else gene_names
+        fbgn_names = symbol2fbgn(gene=gene_names, datapath=fbgn_path) if gene_nametype is "symbol" else gene_names
         # Find the particular tissue in which the gene is specifically expressed
         print(f"----- Start group {group_name}, including {gene_names}")
         anno_genes = pd.DataFrame()
@@ -241,6 +245,7 @@ def anno_flyatlas2(adata: AnnData,
 
     if add_genesummary:
         # Add summaries of all genes to the output data.
-        anno_data = get_genesummary(data=anno_data, geneby="FlyBase ID", gene_nametype="FBgn")
+        anno_data = get_genesummary(data=anno_data, geneby="FlyBase ID",
+                                    gene_nametype="FBgn", datapath=gene_summaries_path)
 
     return adata, anno_data if copy else None, anno_data
