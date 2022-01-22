@@ -18,7 +18,7 @@ def bin1tobinx(bin1_data, binx=None, save=None):
     Examples
     --------
     >> bin1_data = pd.read_csv(r"bin1_lasso.txt", sep="\t")
-    >> bin5_data = bin1tobinx(bin1_data, binx=5, save="bin5_lasso.txt.gz")
+    >> bin5_data = bin1tobinx(bin1_data, binx=5, save="bin5_lasso.gem.gz")
     """
 
     bin1_data['geneID'] = bin1_data['geneID'].map(lambda g: str(g).strip('"')).astype(str)

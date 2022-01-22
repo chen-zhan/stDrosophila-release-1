@@ -5,9 +5,11 @@
 3. 通过 cropbyphoto 用photoshop后的图像处理 lasso 矩阵
 """
 
+import cv2
 import numpy as np
 import pandas as pd
-import cv2
+
+from scipy.sparse import csr_matrix, lil_matrix
 
 
 def rectangle_crop_img(src, x_start, x_end, y_start, y_end):
@@ -128,7 +130,8 @@ def pre_photo(img,
 
 
 def filter_coords(raw_lasso, filter_mtx):
-
+    """Filter the raw data corresponding to the new coordinates.
+    """
     filter_mtx['y'] = filter_mtx.index
     lasso_data = pd.melt(filter_mtx, id_vars=['y'], value_name="MIDCounts")
     lasso_data = lasso_data[lasso_data["MIDCounts"] != 0][["x", "y"]]
@@ -173,7 +176,7 @@ def pre_lasso(data,
 
     Examples
     --------
-    >> raw_lasso = pd.read_csv("E:\BGI_Paper\Data\lasso_ssDNA_20211230\E5\E5_S3\lasso\E5_S3_bin5.txt", sep="\t")
+    >> raw_lasso = pd.read_csv("E5_S3_bin5.gem.gz", sep="\t")
     >> new_lasso, img = pre_lasso(data=raw_lasso, rectangle_crop=[200, 500, 500, 800],
                                   ehtranfer={"method": "local", "cliplimit": 15}, gray_factor=3,
                                   show=True, save_img="E5_S3_lasso.tif", save_lasso="E5_S3_lasso.txt")
@@ -215,10 +218,11 @@ def cropbyphoto(data, img, background=0, save=None):
 
     Examples
     --------
-    >> lasso = pd.read_csv(r"D:\BGIpy37_pytorch113\ST_Drosophila\1_Preprocessing\LassoByImage\E5_S3_lasso.txt", sep="\t")
+    >> lasso = pd.read_csv(r"E5_S3_lasso.gem.gz", sep="\t")
     >> img = cv2.imread("E5_S3_lasso_ps.tif", 2)
     >> new_lasso = cropbyphoto(data=lasso, img=img, background=255, save="E5_S3_crop.txt")
     """
+
     raw_lasso = data.copy()
     data = data[["x", "y", "MIDCounts"]].groupby(["x", "y"])["MIDCounts"].sum().to_frame("MIDCounts").reset_index()
     raw_mtx = pd.pivot_table(data, index=["y"], columns=["x"], values="MIDCounts", fill_value=0)
@@ -227,4 +231,5 @@ def cropbyphoto(data, img, background=0, save=None):
     new_lasso = filter_coords(raw_lasso=raw_lasso, filter_mtx=new_mtx)
     if save is not None:
         new_lasso.to_csv(save, sep="\t", index=False)
+
     return new_lasso
