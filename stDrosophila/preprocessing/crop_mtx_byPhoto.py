@@ -128,14 +128,12 @@ def pre_photo(img,
 
 
 def filter_coords(raw_lasso, filter_mtx):
+
     filter_mtx['y'] = filter_mtx.index
     lasso_data = pd.melt(filter_mtx, id_vars=['y'], value_name="MIDCounts")
     lasso_data = lasso_data[lasso_data["MIDCounts"] != 0][["x", "y"]]
-    new_coords = lasso_data["x"].astype(str) + "_" + lasso_data["y"].astype(str)
-    new_coords = new_coords.tolist()
-    raw_lasso["coords"] = raw_lasso["x"].astype(str) + "_" + raw_lasso["y"].astype(str)
-    raw_lasso = raw_lasso[raw_lasso["coords"].isin(new_coords)]
-    new_lasso = raw_lasso.drop(columns=["coords"])
+    new_lasso = pd.merge(raw_lasso, lasso_data, on=["x", "y"], how="inner")
+
     return new_lasso
 
 
@@ -185,6 +183,7 @@ def pre_lasso(data,
     data = data[["x", "y", "MIDCounts"]].groupby(["x", "y"])["MIDCounts"].sum().to_frame("MIDCounts").reset_index()
 
     lasso_mtx = pd.pivot_table(data, index=["y"], columns=["x"], values="MIDCounts", fill_value=0)
+
     if rectangle_crop is not None:
         lasso_mtx = lasso_mtx.iloc[rectangle_crop[0]:rectangle_crop[1], rectangle_crop[2]:rectangle_crop[3]]
         new_lasso = filter_coords(raw_lasso=raw_lasso, filter_mtx=lasso_mtx)

@@ -20,10 +20,11 @@ def read_lasso(filename: Optional[str] = None):
     return lasso_data
 
 
-def lasso2adata(data : Optional[pd.DataFrame] = None,
+def lasso2adata(data: Optional[pd.DataFrame] = None,
                 slice: Optional[str] = None,
                 z: Union[int, float] = None,
                 z_gap: Union[int, float] = None,
+                physical_coords: bool = True
                 ):
 
     data['x_ind'] = data['x'] - np.min(data['x'])
@@ -43,7 +44,7 @@ def lasso2adata(data : Optional[pd.DataFrame] = None,
                          shape=(len(uniq_cell), len(uniq_gene)))
 
     all_coords = data[['x_ind', 'y_ind', 'x', 'y']].drop_duplicates(inplace=False)
-    coords = all_coords[['x_ind', 'y_ind']].values
+    coords = all_coords[['x_ind', 'y_ind']].values * 0.5 if physical_coords else all_coords[['x_ind', 'y_ind']].values
     raw_coords = all_coords[['x', 'y']].values
 
     # var
@@ -51,12 +52,9 @@ def lasso2adata(data : Optional[pd.DataFrame] = None,
     var.set_index("gene_short_name", inplace=True)
 
     # obs
+    obs = pd.DataFrame({"cell_name": uniq_cell, "slice": [slice] * len(uniq_cell), "x": coords[:, 0], "y": coords[:, 1]})
     if z is not None and z_gap is not None:
-        obs = pd.DataFrame({"cell_name": uniq_cell, "slice": [slice] * len(uniq_cell), "x": coords[:, 0],
-                            "y": coords[:, 1], "z": [z * 2 * z_gap] * len(uniq_cell)})
-    else:
-        obs = pd.DataFrame({"cell_name": uniq_cell, "slice": [slice] * len(uniq_cell),
-                            "x": coords[:, 0], "y": coords[:, 1]})
+        obs["z"] = [z * z_gap] * len(uniq_cell) if physical_coords else [z * z_gap * 2] * len(uniq_cell)
     obs.set_index("cell_name", inplace=True)
 
     # obsm
