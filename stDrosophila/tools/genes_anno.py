@@ -1,7 +1,10 @@
 # Annotate a gene list based on the flyaltas2 database
-import pandas as pd
-from .anno import symbol2fbgn, gene2tissue
+
 from typing import Union, Optional
+
+import pandas as pd
+
+from .anno import symbol2fbgn, gene2tissue
 
 
 def genes_flyaltas2(
@@ -21,7 +24,10 @@ def genes_flyaltas2(
     gene_nametype : `str` (default: `'symbol'`)
         Type of gene name, including `'symbol'` and `'FBgn'`.
     stage: `str` (default: `'male_adult'`)
-        The developmental stages of Drosophila melanogaster, including `larval`, `female_adult` and `male_adult`.
+        The developmental stages of Drosophila melanogaster. Available stages are:
+            * `'larval'`
+            * `'female_adult'`
+            * `'male_adult'`
     enrich_threshold: `float` (default: `1.0`)
         Threshold for filtering enrichment in FlyAtlas 2.
     fbgn_path: `str` (default: `'deml_fbgn.tsv.gz'`)

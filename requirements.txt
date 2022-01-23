@@ -2,6 +2,7 @@ anndata
 dynamo-release
 harmonypy
 imageio-ffmpeg
+intermine
 ipyvtklink
 jupyter
 louvain
