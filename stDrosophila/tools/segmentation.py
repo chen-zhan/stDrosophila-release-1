@@ -58,7 +58,7 @@ def find_nuclear_genes(
         genes_exp.sort_values(by=["MIDCounts", "geneID"], inplace=True, ascending=False)
         top_num_genes = genes_exp["geneID"].head(gene_num)
         new_lasso = new_lasso[new_lasso["geneID"].isin(top_num_genes)]
-    print(f"The number of nuclear localized genes found is: {len(new_lasso['gennID'].unique())}.")
+    print(f"The number of nuclear localized genes found is: {len(new_lasso['geneID'].unique())}.")
 
     # save
     if save is not None:
