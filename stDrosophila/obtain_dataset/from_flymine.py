@@ -138,8 +138,8 @@ def fm_gene2GO(
         [
             [
                 row["primaryIdentifier"],
-                row["symbol"],
                 row["secondaryIdentifier"],
+                row["symbol"],
                 row["goAnnotation.ontologyTerm.identifier"],
                 row["goAnnotation.ontologyTerm.name"],
                 row["goAnnotation.ontologyTerm.namespace"],
