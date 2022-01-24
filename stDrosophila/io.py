@@ -9,7 +9,9 @@ from scipy.sparse import csr_matrix
 from typing import Optional, Union
 
 
-def read_lasso(file: Optional[str] = None):
+def read_lasso(
+        file: Optional[str] = None
+) -> pd.DataFrame:
 
     lasso_data = pd.read_csv(file, sep="\t")
     lasso_data["geneID"] = lasso_data.geneID.astype(str).str.strip('"')
@@ -20,12 +22,14 @@ def read_lasso(file: Optional[str] = None):
     return lasso_data
 
 
-def lasso2adata(data: Optional[pd.DataFrame] = None,
-                slice: Optional[str] = None,
-                z: Union[int, float] = None,
-                z_gap: Union[int, float] = None,
-                physical_coords: bool = True
-                ):
+def lasso2adata(
+        data: Optional[pd.DataFrame] = None,
+        slice: Optional[str] = None,
+        z: Union[int, float] = None,
+        z_gap: Union[int, float] = None,
+        physical_coords: bool = True,
+        cell_info: bool = False
+) -> ad.AnnData:
 
     data['x_ind'] = data['x'] - np.min(data['x'])
     data['y_ind'] = data['y'] - np.min(data['y'])
@@ -39,13 +43,14 @@ def lasso2adata(data: Optional[pd.DataFrame] = None,
 
     data["csr_x_ind"] = data["cell_name"].map(cell_dict)
     data["csr_y_ind"] = data["geneID"].map(gene_dict)
-    count_name = 'UMICount' if 'UMICount' in data.columns else 'MIDCounts'
+    count_name = "UMICount" if "UMICount" in data.columns else "MIDCounts"
     csr_mat = csr_matrix((data[count_name], (data["csr_x_ind"], data["csr_y_ind"])),
                          shape=(len(uniq_cell), len(uniq_gene)))
 
-    all_coords = data[['x_ind', 'y_ind', 'x', 'y']].drop_duplicates(inplace=False)
-    coords = all_coords[['x_ind', 'y_ind']].values * 0.5 if physical_coords else all_coords[['x_ind', 'y_ind']].values
-    raw_coords = all_coords[['x', 'y']].values
+    all_coords_col = ["x_ind", "y_ind", "x", "y", "cell_type"] if cell_info else ["x_ind", "y_ind", "x", "y"]
+    all_coords = data[all_coords_col].drop_duplicates(inplace=False)
+    coords = all_coords[["x_ind", "y_ind"]].values * 0.5 if physical_coords else all_coords[["x_ind", "y_ind"]].values
+    raw_coords = all_coords[["x", "y"]].values
 
     # var
     var = pd.DataFrame({"gene_short_name": uniq_gene})
@@ -55,6 +60,8 @@ def lasso2adata(data: Optional[pd.DataFrame] = None,
     obs = pd.DataFrame({"cell_name": uniq_cell, "slice": [slice] * len(uniq_cell), "x": coords[:, 0], "y": coords[:, 1]})
     if z is not None and z_gap is not None:
         obs["z"] = [z * z_gap] * len(uniq_cell) if physical_coords else [z * z_gap * 2] * len(uniq_cell)
+    if cell_info:
+        obs["cell_type"] = all_coords[["cell_type"]]
     obs.set_index("cell_name", inplace=True)
 
     # obsm
