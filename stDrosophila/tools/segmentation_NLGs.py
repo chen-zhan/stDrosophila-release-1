@@ -107,8 +107,9 @@ def mapping2lasso(
     # cells processing
     if cells_file.endswith(".gz"):
         with gzip.open(cells_file, "r") as f:
-            cells_file = f
-    mtx = coo_matrix(np.load(cells_file))
+            mtx = coo_matrix(np.load(f))
+    else:
+        mtx = coo_matrix(np.load(cells_file))
     x = pd.Series(mtx.row) + np.min(nucleus_lasso["x"])
     y = pd.Series(mtx.col) + np.min(nucleus_lasso["y"])
     value = pd.Series(mtx.data)
