@@ -17,11 +17,9 @@ from typing import Optional, Sequence, Tuple, Union
 def clip_3d_coords(adata: AnnData, coordsby: str = "spatial") -> AnnData:
     """
     Coordinate Preprocessing of 3D Models.
-
     Args:
         adata: AnnData object.
         coordsby: The key from adata.obsm whose value will be used to reconstruct the 3D structure.
-
     Returns:
         clipped_adata: AnnData object that is clipped.
     """
@@ -56,14 +54,12 @@ def three_d_color(
 ) -> np.ndarray:
     """
     Set the color of groups or gene expression.
-
     Args:
         series: Pandas sereis (e.g. cell groups or gene names).
         colormap: Colors to use for plotting data.
         alphamap: The opacity of the color to use for plotting data.
         mask_color: Colors to use for plotting mask information.
         mask_alpha: The opacity of the color to use for plotting mask information.
-
     Returns:
         rgba: The rgba values mapped to groups or gene expression.
     """
@@ -119,7 +115,6 @@ def build_three_d_model(
 ) -> Tuple[pv.PolyData or pv.UnstructuredGrid, pv.PolyData]:
     """
     Reconstruct 3D structure.
-
     Args:
         adata: AnnData object.
         coordsby: The key from adata.obsm whose value will be used to reconstruct the 3D structure.
@@ -136,7 +131,6 @@ def build_three_d_model(
         voxelize: Voxelize the reconstructed 3D structure.
         voxel_size: Voxel size.
         unstructure: Convert pyvista.PolyData object to pyvista.UnstructuredGrid object.
-
     Returns:
         mesh: Reconstructed 3D structure, which contains the following properties:
             points_coords: `mesh['points_coords']`, coordinates of all points.
@@ -220,7 +214,6 @@ def three_d_slicing(
     """
     Create many slices of the input dataset along a specified axis or
     create three orthogonal slices through the dataset on the three cartesian planes.
-
     Args:
         mesh: Reconstructed 3D structure (voxelized object).
         axis: The axis to generate the slices along. Available axes are:
@@ -230,7 +223,6 @@ def three_d_slicing(
         n_slices: The number of slices to create along a specified axis.
                   If n_slices is `"orthogonal"`, create three orthogonal slices.
         center: A 3-length sequence specifying the position which slices are taken. Defaults to the center of the mesh.
-
     Returns:
         Sliced dataset.
     """
@@ -251,37 +243,6 @@ def three_d_slicing(
     else:
         # Create many slices of the input dataset along a specified axis.
         return mesh.slice_along_axis(n=n_slices, axis=axis, center=center)
-
-
-def compute_volume(
-    mesh: Optional[pv.DataSet] = None,
-    group_show: Union[str, list] = "all",
-) -> float:
-    """
-    Calculate the volume of the reconstructed 3D structure.
-
-    Args:
-        mesh: Reconstructed 3D structure (voxelized object).
-        group_show: Subset of groups used for calculation, e.g. [`'g1'`, `'g2'`, `'g3'`]. The default group_show is `'all'`, for all groups.
-
-    Returns:
-        volume_size: The volume of the reconstructed 3D structure.
-    """
-
-    mesh = mesh.compute_cell_sizes(length=False, area=False, volume=True)
-    volume_data = pd.concat(
-        [pd.Series(mesh.cell_data["groups"]), pd.Series(mesh.cell_data["Volume"])],
-        axis=1,
-    )
-
-    if group_show is not "all":
-        group_show = [group_show] if isinstance(group_show, str) else group_show
-        volume_data = volume_data[volume_data[0].isin(group_show)]
-
-    volume_size = float(np.sum(volume_data[1]))
-    print(f"{group_show} volume: {volume_size}")
-
-    return volume_size
 
 
 def easy_three_d_plot(
@@ -306,7 +267,6 @@ def easy_three_d_plot(
 ):
     """
     Create a plotting object to display pyvista/vtk mesh.
-
     Args:
         mesh: Reconstructed 3D structure.
         surface: Surface of the reconstructed 3D structure
@@ -343,6 +303,7 @@ def easy_three_d_plot(
                      E.g.: (0.1, 0.1) would make the legend 10% the size of the entire figure window.
         view_up: The normal to the orbital plane. The default view_up is `[0.5, 0.5, 1]`.
         framerate: Frames per second.
+
     """
 
     if shape is None:
@@ -407,7 +368,7 @@ def easy_three_d_plot(
                 face="circle",
                 bcolor=None,
                 loc=legend_loc,
-                size=legend_size
+                size=legend_size,
             )
 
         if outline:
