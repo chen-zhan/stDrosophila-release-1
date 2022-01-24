@@ -94,9 +94,9 @@ def fm_gene2GO(
             * `'symbol': gene symbol, e.g.: 'Adh'.
             * `'primaryIdentifier'`: gene primary identifier, e.g.: `FBgn0000055`.
             * `'secondaryIdentifier'`: gene secondary identifier, e.g.: `CG3481`.
-    GO_namespace: `str` or `list` (default: `all`)
+    GO_namespace: `str` or `list` (default: `'all'`)
         Ontology term namespace. Available GO_namespaces are:
-            * `'all': show all Ontology term namespaces.
+            * `'all'`: show all Ontology term namespaces.
             * `'molecular_function'`: show molecular_function.
             * `'biological_process'`: show biological_process.
             * `'cellular_component'`: show cellular_component.

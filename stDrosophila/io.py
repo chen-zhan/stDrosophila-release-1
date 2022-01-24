@@ -9,9 +9,9 @@ from scipy.sparse import csr_matrix
 from typing import Optional, Union
 
 
-def read_lasso(filename: Optional[str] = None):
+def read_lasso(file: Optional[str] = None):
 
-    lasso_data = pd.read_csv(filename, sep="\t")
+    lasso_data = pd.read_csv(file, sep="\t")
     lasso_data["geneID"] = lasso_data.geneID.astype(str).str.strip('"')
     lasso_data["x"] = lasso_data["x"].astype(int)
     lasso_data["y"] = lasso_data["y"].astype(int)
