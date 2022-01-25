@@ -132,8 +132,9 @@ def pre_photo(img,
 def filter_coords(raw_lasso, filter_mtx):
     """Filter the raw data corresponding to the new coordinates.
     """
-    filter_mtx['y'] = filter_mtx.index
-    lasso_data = pd.melt(filter_mtx, id_vars=['y'], value_name="MIDCounts")
+    filter_mtx_use = filter_mtx.copy()
+    filter_mtx_use['y'] = filter_mtx_use.index
+    lasso_data = pd.melt(filter_mtx_use, id_vars=['y'], value_name="MIDCounts")
     lasso_data = lasso_data[lasso_data["MIDCounts"] != 0][["x", "y"]]
     new_lasso = pd.merge(raw_lasso, lasso_data, on=["x", "y"], how="inner")
 
