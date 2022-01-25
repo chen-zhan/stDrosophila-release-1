@@ -25,7 +25,7 @@ def read_lasso(path: str) -> pd.DataFrame:
             "x": np.uint32,
             "y": np.uint32,
             "MIDCounts": np.uint16,
-            "cell": "category",
+            "cell": str,
         })
 
     lasso_data["geneID"] = lasso_data.geneID.astype(str).str.strip('"')
@@ -39,7 +39,8 @@ def lasso2adata(
     label_path: Optional[str] = None,
     DNB_gap: Optional[float] = 0.5,
     z: Union[float] = None,
-    z_gap: Union[float] = None
+    z_gap: Union[float] = None,
+    cellbin: bool = False
 ) -> AnnData:
     """A helper function that facilitates constructing an AnnData object suitable for downstream spateo analysis
 
@@ -48,17 +49,18 @@ def lasso2adata(
         data: `pandas.DataFrame`
             A string that points to the directory and filename of spatial transcriptomics dataset, produced by the
             stereo-seq method from BGI.
-        slice: `str` or None (default: None)
+        slice: `str` or `None` (default: `None`)
             Name of the slice. Will be used when displaying multiple slices.
-        label_path: `str` or None (default: None)
+        label_path: `str` or `None` (default: `None`)
             A string that points to the directory and filename of cell segmentation label matrix(Format:`.npy`).
             If not None, the results of cell segmentation will be used, and param `binsize` will be ignored.
         DNB_gap: `float` (default: `0.5`)
 
-        z: `float` (default: None)
+        z: `float` (default: `None`)
 
-        z_gap: `float` (default: None)
+        z_gap: `float` (default: `None`)
 
+        cellbin: `bool` (default: `False`)
 
     Returns
     -------
@@ -69,10 +71,9 @@ def lasso2adata(
     # physical coords
     data["x"] = (data["x"].values - data["x"].values.min()) * DNB_gap
     data["y"] = (data["y"].values - data["y"].values.min()) * DNB_gap
-    if z is not None:
-        data["z"] = z * z_gap / DNB_gap
+    data["z"] = z * z_gap / DNB_gap if z is not None else 0
 
-    # get cell name
+    # obs
     if label_path is not None:
         # TODO: Get cell names using labels
         if label_path.endswith(".gz"):
@@ -81,36 +82,37 @@ def lasso2adata(
         else:
             label_mtx = np.load(label_path)
 
-        props = measure.regionprops_table(label_mtx, properties=("label", "area", "centroid"))
+        props = measure.regionprops_table(label_mtx, properties=("label", "centroid"))
         label_props = pd.DataFrame(props)
-        label_props.columns = ["cell", "area", "x", "y"]
-        label_props["cell"] = label_props["cell"].astype("category")
-
-        del data["x"], data["y"]
+        label_props.columns = ["cell", "centroid_x", "centroid_y"]
+        label_props["cell"] = label_props["cell"].astype(str)
         data = pd.merge(data, label_props, on=["cell"], how="inner")
-        data = data[
-            ["geneID", "x", "y", "cell", "area", "MIDCounts"]
-        ].groupby(["geneID", "x", "y", "cell", "area"])["MIDCounts"].sum().to_frame("MIDCounts").reset_index()
-    else:
-        data["cell"] = data["x"].astype(str) + "_" + data["y"].astype(str)
 
-    uniq_cell, uniq_gene = data["cell"].unique().tolist(), data["geneID"].unique().tolist()
+    if cellbin is True:
+        data = data[["geneID", "centroid_x", "centroid_y", "z", "cell", "MIDCounts"]].groupby(["geneID", "centroid_x", "centroid_y", "z", "cell"])["MIDCounts"].sum().to_frame("MIDCounts").reset_index()
+        data.columns = ["geneID", "x", "y", "z", "cell", "MIDCounts"]
+        data["obs_index"] = data["cell"]
+    else:
+        data["obs_index"] = data["x"].astype(str) + "_" + data["y"].astype(str)
+
+    uniq_cell, uniq_gene = data["obs_index"].unique().tolist(), data["geneID"].unique().tolist()
 
     cell_dict = dict(zip(uniq_cell, range(0, len(uniq_cell))))
     gene_dict = dict(zip(uniq_gene, range(0, len(uniq_gene))))
 
-    data["csr_x_ind"] = data["cell"].map(cell_dict)
+    data["csr_x_ind"] = data["obs_index"].map(cell_dict)
     data["csr_y_ind"] = data["geneID"].map(gene_dict)
 
-    X = csr_matrix(
-        (data["MIDCounts"], (data["csr_x_ind"], data["csr_y_ind"])),
-        shape=(len(uniq_cell), len(uniq_gene)),
-    )
+    # X
+    X = csr_matrix((data["MIDCounts"], (data["csr_x_ind"], data["csr_y_ind"])), shape=(len(uniq_cell), len(uniq_gene)))
 
     # obs
-    obs = data[["x", "y", "cell"]].drop_duplicates()
+    del data["geneID"], data["MIDCounts"], data["csr_x_ind"], data["csr_y_ind"]
+    if z is None:
+        del data["z"]
+    obs = data.drop_duplicates()
     obs["slice"] = slice
-    obs.set_index("cell", inplace=True)
+    obs.set_index("obs_index", inplace=True)
 
     # var
     var = pd.DataFrame({"gene_short_name": uniq_gene})
@@ -123,3 +125,4 @@ def lasso2adata(
     adata = AnnData(X=X, obs=obs, var=var, obsm=obsm)
 
     return adata
+

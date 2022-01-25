@@ -156,7 +156,7 @@ def build_three_d_model(
 
     # filter gene expression info
     genes_exp = _adata.X.sum(axis=1) if gene_show == "all" else _adata[:, gene_show].X.sum(axis=1)
-    genes_exp = pd.Series(genes_exp, index=groups.index)
+    genes_exp = pd.DataFrame(genes_exp, index=groups.index)
     genes_data = pd.concat([groups, genes_exp], axis=1)
     genes_data.columns = ["groups", "genes_exp"]
     new_genes_exp = genes_data[["groups", "genes_exp"]].apply(
@@ -251,7 +251,7 @@ def easy_three_d_plot(
     scalar: str = "groups",
     surface_color: str = "gainsboro",
     surface_opacity: float = 0.5,
-    outline: bool = True,
+    outline: bool = False,
     background: str = "white",
     background_r: str = "black",
     save: Optional[str] = None,
