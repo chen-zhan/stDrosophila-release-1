@@ -11,7 +11,7 @@ from ..obtain_dataset import fm_gene2GO
 
 
 def find_nuclear_genes(
-        file: str = None,
+        path: str = None,
         save: str = None,
         gene_num: Union[str, int] = "all"
 ) -> pd.DataFrame:
@@ -20,8 +20,8 @@ def find_nuclear_genes(
 
     Parameters
     ----------
-    file: `str`  (default: `None`)
-        Lasso file.
+    path: `str`  (default: `None`)
+        Path to lasso file.
     save: `str` (default: `None`)
         Output filename.
     gene_num: `str` or `list` (default: `'all'`)
@@ -34,7 +34,7 @@ def find_nuclear_genes(
     """
 
     # load data
-    lasso = read_lasso(file=file)
+    lasso = read_lasso(path=path)
     lasso_genes = lasso["geneID"].unique().tolist()
 
     # the GO terms for a particular gene list
@@ -101,8 +101,8 @@ def mapping2lasso(
 
     """
 
-    total_lasso = read_lasso(file=total_file)
-    nucleus_lasso = read_lasso(file=nucleus_file)
+    total_lasso = read_lasso(path=total_file)
+    nucleus_lasso = read_lasso(path=nucleus_file)
 
     # cells processing
     if cells_file.endswith(".gz"):
@@ -110,15 +110,16 @@ def mapping2lasso(
             mtx = coo_matrix(np.load(f))
     else:
         mtx = coo_matrix(np.load(cells_file))
+
     x = pd.Series(mtx.row) + np.min(nucleus_lasso["x"])
     y = pd.Series(mtx.col) + np.min(nucleus_lasso["y"])
     value = pd.Series(mtx.data)
     cells = pd.concat([x, y, value], axis=1)
-    cells.columns = ["x", "y", "cell_type"]
+    cells.columns = ["x", "y", "cell"]
 
     # map to the total lasso file
     total_cells = pd.merge(total_lasso, cells, on=["x", "y"], how="inner")
-    total_cells["cell_type"] = total_cells["cell_type"].astype(str)
+    total_cells["cell"] = total_cells["cell"].astype(str)
     # save
     if save is not None:
         total_cells.to_csv(save, sep="\t", index=False)
