@@ -86,6 +86,8 @@ def lasso2adata(
         label_props = pd.DataFrame(props)
         label_props.columns = ["cell", "centroid_x", "centroid_y"]
         label_props["cell"] = label_props["cell"].astype(str)
+        label_props["centroid_x"] = label_props["centroid_x"].values * DNB_gap
+        label_props["centroid_y"] = label_props["centroid_y"].values * DNB_gap
         data = pd.merge(data, label_props, on=["cell"], how="inner")
 
     if cellbin is True:
@@ -125,4 +127,3 @@ def lasso2adata(
     adata = AnnData(X=X, obs=obs, var=var, obsm=obsm)
 
     return adata
-
