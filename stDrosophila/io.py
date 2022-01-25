@@ -47,21 +47,19 @@ def lasso2adata(
     Parameters
     ----------
         data: `pandas.DataFrame`
-            A string that points to the directory and filename of spatial transcriptomics dataset, produced by the
-            stereo-seq method from BGI.
+            Lasso data.
         slice: `str` or `None` (default: `None`)
             Name of the slice. Will be used when displaying multiple slices.
         label_path: `str` or `None` (default: `None`)
-            A string that points to the directory and filename of cell segmentation label matrix(Format:`.npy`).
-            If not None, the results of cell segmentation will be used, and param `binsize` will be ignored.
+            A string that points to the directory and filename of cell segmentation label matrix(`.npy` or `.npy.gz`).
         DNB_gap: `float` (default: `0.5`)
-
+            True physical distance (microns) between nano balls.
         z: `float` (default: `None`)
-
+            Z-axis direction coordinates.
         z_gap: `float` (default: `None`)
-
+            True physical distance (microns) between slices.
         cellbin: `bool` (default: `False`)
-
+            Whether to use cell bin as the base unit. Only valid when label_path is not None.
     Returns
     -------
         adata: :class:`~anndata.AnnData`
