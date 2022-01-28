@@ -285,23 +285,23 @@ def three_d_slicing(
 
 
 def easy_three_d_plot(
-    mesh: Optional[pv.DataSet] = None,
-    scalar: str = "groups",
-    surface_color: str = "gainsboro",
-    surface_opacity: float = 0.5,
-    outline: bool = False,
-    background: str = "white",
-    background_r: str = "black",
-    save: Optional[str] = None,
-    notebook: bool = False,
-    shape: Optional[list] = None,
-    off_screen: bool = False,
-    window_size: Optional[list] = None,
-    cpos: Union[str, tuple, list] = "iso",
-    legend_loc: str = "lower right",
-    legend_size: Optional[Sequence] = None,
-    view_up: Optional[list] = None,
-    framerate: int = 15,
+        mesh: Optional[pv.DataSet] = None,
+        scalar: str = "groups",
+        outline: bool = False,
+        ambient: float = 0.3,
+        opacity: float = 0.5,
+        background: str = "black",
+        background_r: str = "white",
+        save: Optional[str] = None,
+        notebook: bool = False,
+        shape: Optional[list] = None,
+        off_screen: bool = False,
+        window_size: Optional[list] = None,
+        cpos: Union[str, tuple, list] = "iso",
+        legend_loc: str = "lower right",
+        legend_size: Optional[Sequence] = None,
+        view_up: Optional[list] = None,
+        framerate: int = 15,
 ):
     """
     Create a plotting object to display pyvista/vtk mesh.
@@ -310,9 +310,13 @@ def easy_three_d_plot(
         scalar: Types used to “color” the mesh. Available scalars are:
                 * `'groups'`
                 * `'genes'`
-        surface_color: Color to use for plotting surface. The default surface_color is `'gainsboro'`.
-        surface_opacity: The opacity of the color to use for plotting surface. The default surface_opacity is `0.5`.
         outline: Produce an outline of the full extent for the input dataset.
+        ambient: When lighting is enabled, this is the amount of light in the range of 0 to 1 (default 0.0) that reaches
+                 the actor when not directed at the light source emitted from the viewer.
+        opacity: Opacity of the mesh. If a single float value is given, it will be the global opacity of the mesh and
+                 uniformly applied everywhere - should be between 0 and 1.
+                 A string can also be specified to map the scalars range to a predefined opacity transfer function
+                 (options include: 'linear', 'linear_r', 'geom', 'geom_r').
         background: The background color of the window.
         background_r: A color that is clearly different from the background color.
         save: If a str, save the figure. Infer the file type if ending on
@@ -340,7 +344,6 @@ def easy_three_d_plot(
                      E.g.: (0.1, 0.1) would make the legend 10% the size of the entire figure window.
         view_up: The normal to the orbital plane. The default view_up is `[0.5, 0.5, 1]`.
         framerate: Frames per second.
-
     """
 
     if shape is None:
@@ -369,48 +372,44 @@ def easy_three_d_plot(
         window_size=window_size,
         notebook=notebook,
         border=True,
-        border_color=background_r,
+        border_color=background_r
     )
     for subplot_index, cpo in zip(subplot_indices, cpos):
-        if surface is not None:
-            # Add the surface of reconstructed 3D structure.
-            p.add_mesh(surface, color=surface_color, opacity=surface_opacity)
 
-        if mesh is not None:
-            # Add a reconstructed 3D structure.
-            p.add_mesh(
-                mesh,
-                scalars=f"{scalar}_rgba",
-                rgba=True,
-                render_points_as_spheres=True,
-                ambient=0.5,
-            )
+        # Add a reconstructed 3D structure.
+        p.add_mesh(
+            mesh,
+            scalars=f"{scalar}_rgba",
+            rgba=True,
+            render_points_as_spheres=True,
+            ambient=ambient,
+            opacity=opacity
+        )
 
-            # Add a legend to render window.
-            mesh[f"{scalar}_hex"] = np.array([mpl.colors.to_hex(i) for i in mesh[f"{scalar}_rgba"]])
-            _data = pd.concat([pd.Series(mesh[scalar]), pd.Series(mesh[f"{scalar}_hex"])], axis=1)
-            _data.columns = ["label", "hex"]
-            _data = _data[_data["label"] != "mask"]
-            _data.drop_duplicates(inplace=True)
-            _data.sort_values(by=["label", "hex"], inplace=True)
-            _data = _data.astype(str)
-            gap = math.ceil(len(_data.index) / 5) if scalar is "genes" else 1
-            legend_entries = [[_data["label"].iloc[i], _data["hex"].iloc[i]] for i in range(0, len(_data.index), gap)]
-            if scalar is "genes":
-                legend_entries.append([_data["label"].iloc[-1], _data["hex"].iloc[-1]])
+        # Add a legend to render window.
+        mesh[f"{scalar}_hex"] = np.array([mpl.colors.to_hex(i) for i in mesh[f"{scalar}_rgba"]])
+        _data = pd.concat([pd.Series(mesh[scalar]), pd.Series(mesh[f"{scalar}_hex"])], axis=1)
+        _data.columns = ["label", "hex"]
+        _data = _data[_data["label"] != "mask"]
+        _data.drop_duplicates(inplace=True)
+        _data.sort_values(by=["label", "hex"], inplace=True)
+        _data = _data.astype(str)
+        gap = math.ceil(len(_data.index) / 5) if scalar is "genes" else 1
+        legend_entries = [[_data["label"].iloc[i], _data["hex"].iloc[i]] for i in range(0, len(_data.index), gap)]
+        if scalar is "genes":
+            legend_entries.append([_data["label"].iloc[-1], _data["hex"].iloc[-1]])
 
-            legend_size = (0.1, 0.1) if legend_size is None else legend_size
-            p.add_legend(
-                legend_entries,
-                face="circle",
-                bcolor=None,
-                loc=legend_loc,
-                size=legend_size,
-            )
+        legend_size = (0.1, 0.1) if legend_size is None else legend_size
+        p.add_legend(
+            legend_entries,
+            face="circle",
+            bcolor=None,
+            loc=legend_loc,
+            size=legend_size,
+        )
 
         if outline:
-            outline_mesh = surface.outline() if surface is not None else mesh.outline()
-            p.add_mesh(outline_mesh, color=background_r, line_width=3)
+            p.add_mesh(mesh.outline(), color=background_r, line_width=3)
 
         p.camera_position = cpo
         p.background_color = background
