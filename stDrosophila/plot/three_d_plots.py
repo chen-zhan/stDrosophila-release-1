@@ -164,7 +164,7 @@ def build_three_d_model(
 
     # filter group info
     if groupby is None:
-        n_points = _adata.obs.shape[1]
+        n_points = _adata.obs.shape[0]
         groups = pd.Series(["same"]*n_points, index=_adata.obs.index, dtype=str)
     else:
         if isinstance(group_show, str) and group_show is "all":
