@@ -18,7 +18,8 @@ from typing import Optional, Sequence, Tuple, Union
 
 def smoothing_mesh(adata: AnnData, coordsby: str = "spatial", n_surf: int = 10000) -> Tuple[AnnData, PolyData]:
     """
-    Takes a uniformly meshed surface using voronoi clustering and clip the original mesh using the reconstructed surface.
+    Takes a uniformly meshed surface using voronoi clustering and
+    clip the original mesh using the reconstructed surface.
 
     Args:
         adata: AnnData object.
