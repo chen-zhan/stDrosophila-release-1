@@ -14,42 +14,6 @@ from .STAGATE_pyG import STAGATE_pyG
 from tqdm import tqdm
 
 
-def sct_stereo(adata, filter_hvgs=True):
-
-    to_dense_array = lambda X: np.array(X.todense()) if isinstance(X, spmatrix) else X
-
-    try:
-        import stereo as st
-    except ImportError:
-        raise ImportError("\nplease install Stereo:\n\n\tpip install stereopy")
-
-    adata.var_names_make_unique()
-    adata_df = pd.DataFrame(to_dense_array(adata.X), columns=adata.var.index, index=adata.obs.index)
-
-    st_adata = st.io.anndata_to_stereo(adata)
-    st_adata.tl.sctransform(filter_hvgs=filter_hvgs, var_features_n=3000, inplace=True)
-    sct_adata = st.io.stereo_to_anndata(st_adata)
-
-    sct_adata_df = pd.DataFrame(to_dense_array(sct_adata.X), columns=sct_adata.var.index,
-                                index=sct_adata.obs.index)
-    sct_adata_df.sort_index(axis=1, inplace=True)
-    sct_fvgs = sct_adata_df.columns.tolist()
-    adata_df = adata_df.loc[:, adata_df.columns.isin(sct_fvgs)]
-    adata_df.sort_index(axis=1, inplace=True)
-    var_df = pd.DataFrame([], index=sct_adata_df.columns)
-    sct_adata_new = ad.AnnData(X=csr_matrix(sct_adata_df.values), var=var_df, obs=adata.obs)
-    sct_adata_new.obsm["spatial"] = adata.obsm["spatial"]
-
-    sct_adata_raw = sct_adata_new.copy()
-    sct_adata_raw.X = adata_df.values
-    sct_adata_raw.obsm["spatial"] = adata.obsm["raw_spatial"]
-    del sct_adata_raw.obs["x"]
-    del sct_adata_raw.obs["y"]
-    del sct_adata_raw.obs["z"]
-
-    return sct_adata_new, sct_adata_raw
-
-
 def STAGATE_SNN(adata, type="3D", slice_col="slice", cutoff_2D=50, cutoff_Zaxis=5,
                 n_epoch=1000, lr=1e-3, weight_decay=1e-4, device=torch.device('cuda:0'), verbose=True):
 
