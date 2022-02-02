@@ -5,9 +5,9 @@ import warnings
 import matplotlib as mpl
 import numpy as np
 import pandas as pd
-import PVGeo
 import pyacvd
 import pyvista as pv
+import PVGeo
 import seaborn as sns
 
 from anndata import AnnData
@@ -16,11 +16,7 @@ from pyvista.core.pointset import PolyData, UnstructuredGrid
 from typing import Optional, Sequence, Tuple, Union
 
 
-def smoothing_mesh(
-    adata: AnnData,
-    coordsby: str = "spatial",
-    n_surf: int = 10000,
-) -> Tuple[AnnData, PolyData]:
+def smoothing_mesh(adata: AnnData, coordsby: str = "spatial", n_surf: int = 10000) -> Tuple[AnnData, PolyData]:
     """
     Takes a uniformly meshed surface using voronoi clustering and clip the original mesh using the reconstructed surface.
 
@@ -131,7 +127,7 @@ def build_three_d_model(
     n_surf: int = 10000,
     voxelize: bool = True,
     voxel_size: Optional[list] = None,
-    voxel_smooth: Optional[int] = 200,
+    voxel_smooth: Optional[int] = 200
 ) -> UnstructuredGrid:
     """
     Reconstruct a voxelized 3D model.
@@ -169,7 +165,7 @@ def build_three_d_model(
     # filter group info
     if groupby is None:
         n_points = _adata.obs.shape[0]
-        groups = pd.Series(["same"] * n_points, index=_adata.obs.index, dtype=str)
+        groups = pd.Series(["same"]*n_points, index=_adata.obs.index, dtype=str)
     else:
         if isinstance(group_show, str) and group_show is "all":
             groups = _adata.obs[groupby]
@@ -185,11 +181,9 @@ def build_three_d_model(
     genes_exp = pd.DataFrame(genes_exp, index=groups.index, dtype=float_type)
     genes_data = pd.concat([groups, genes_exp], axis=1)
     genes_data.columns = ["groups", "genes_exp"]
-    new_genes_exp = (
-        genes_data[["groups", "genes_exp"]]
-        .apply(lambda x: 0 if x["groups"] is "mask" else round(x["genes_exp"], 2), axis=1)
-        .astype(float_type)
-    )
+    new_genes_exp = genes_data[["groups", "genes_exp"]].apply(
+        lambda x: 0 if x["groups"] is "mask" else round(x["genes_exp"], 2), axis=1
+    ).astype(float_type)
 
     # Create a point cloud(Unstructured) and its surface.
     bucket_xyz = _adata.obsm[coordsby].astype(float_type)
@@ -291,23 +285,23 @@ def three_d_slicing(
 
 
 def easy_three_d_plot(
-    mesh: Optional[pv.DataSet] = None,
-    scalar: str = "groups",
-    outline: bool = False,
-    ambient: float = 0.3,
-    opacity: float = 0.5,
-    background: str = "black",
-    background_r: str = "white",
-    save: Optional[str] = None,
-    notebook: bool = False,
-    shape: Optional[list] = None,
-    off_screen: bool = False,
-    window_size: Optional[list] = None,
-    cpos: Union[str, tuple, list] = "iso",
-    legend_loc: str = "lower right",
-    legend_size: Optional[Sequence] = None,
-    view_up: Optional[list] = None,
-    framerate: int = 15,
+        mesh: Optional[pv.DataSet] = None,
+        scalar: str = "groups",
+        outline: bool = False,
+        ambient: float = 0.3,
+        opacity: float = 0.5,
+        background: str = "black",
+        background_r: str = "white",
+        save: Optional[str] = None,
+        notebook: bool = False,
+        shape: Optional[list] = None,
+        off_screen: bool = False,
+        window_size: Optional[list] = None,
+        cpos: Union[str, tuple, list] = "iso",
+        legend_loc: str = "lower right",
+        legend_size: Optional[Sequence] = None,
+        view_up: Optional[list] = None,
+        framerate: int = 15,
 ):
     """
     Create a plotting object to display pyvista/vtk mesh.
@@ -378,7 +372,7 @@ def easy_three_d_plot(
         window_size=window_size,
         notebook=notebook,
         border=True,
-        border_color=background_r,
+        border_color=background_r
     )
     for subplot_index, cpo in zip(subplot_indices, cpos):
 
@@ -389,7 +383,7 @@ def easy_three_d_plot(
             rgba=True,
             render_points_as_spheres=True,
             ambient=ambient,
-            opacity=opacity,
+            opacity=opacity
         )
 
         # Add a legend to render window.
@@ -400,14 +394,12 @@ def easy_three_d_plot(
         _data.drop_duplicates(inplace=True)
         _data.sort_values(by=["label", "hex"], inplace=True)
         _data = _data.astype(str)
-
         gap = math.ceil(len(_data.index) / 5) if scalar is "genes" else 1
         legend_entries = [[_data["label"].iloc[i], _data["hex"].iloc[i]] for i in range(0, len(_data.index), gap)]
         if scalar is "genes":
             legend_entries.append([_data["label"].iloc[-1], _data["hex"].iloc[-1]])
 
         legend_size = (0.1, 0.1) if legend_size is None else legend_size
-
         p.add_legend(
             legend_entries,
             face="circle",
