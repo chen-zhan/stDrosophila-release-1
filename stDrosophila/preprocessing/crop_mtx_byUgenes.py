@@ -90,7 +90,7 @@ def crop_midimg(data, bin=None, otsu=6, opening=2, contamination=0.05, med=3):
         y_predict = model.predict(coords)
         coords['y_predict'] = y_predict
         ad_coords = coords[coords['y_predict'] != -1]
-        ad_coords.drop(columns='y_predict', axis=1)
+        ad_coords.drop(columns='y_predict', axis=1, inplace=True)
         return ad_coords
 
     def fill_gap(coords, bin):

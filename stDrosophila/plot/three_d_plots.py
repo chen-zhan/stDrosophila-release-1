@@ -183,8 +183,8 @@ def build_three_d_model(
     genes_data = pd.concat([groups, genes_exp], axis=1)
     genes_data.columns = ["groups", "genes_exp"]
     new_genes_exp = genes_data[["groups", "genes_exp"]].apply(
-        lambda x: 0 if x["groups"] is "mask" else round(x["genes_exp"], 2), axis=1
-    ).astype(float_type)
+        lambda x: "mask" if x["groups"] is "mask" else round(x["genes_exp"], 2), axis=1
+    )
 
     # Create a point cloud(Unstructured) and its surface.
     bucket_xyz = _adata.obsm[coordsby].astype(float_type)
@@ -214,7 +214,7 @@ def build_three_d_model(
         mask_alpha=mask_alpha,
     ).astype(float_type)
 
-    points.cell_data["genes"] = new_genes_exp.values
+    points.cell_data["genes"] = new_genes_exp.map(lambda x: 0 if x == "mask" else x).astype(float_type).values
     points.cell_data["genes_rgba"] = three_d_color(
         series=new_genes_exp,
         colormap=gene_cmap,
