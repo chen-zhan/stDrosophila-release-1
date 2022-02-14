@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pyvista as pv
 
-from typing import Optional, Sequence, Tuple, Union
+from typing import Optional, Union
 
 
 def compute_volume(
