@@ -26,7 +26,8 @@ def read_lasso(path: str) -> pd.DataFrame:
             "y": np.uint32,
             "MIDCounts": np.uint16,
             "cell": str,
-        })
+        },
+    )
 
     lasso_data["geneID"] = lasso_data.geneID.astype(str).str.strip('"')
 
@@ -40,7 +41,7 @@ def lasso2adata(
     DNB_gap: Optional[float] = 0.5,
     z: Union[float] = None,
     z_gap: Union[float] = None,
-    cellbin: bool = False
+    cellbin: bool = False,
 ) -> AnnData:
     """A helper function that facilitates constructing an AnnData object suitable for downstream spateo analysis
 
@@ -89,13 +90,22 @@ def lasso2adata(
         data = pd.merge(data, label_props, on=["cell"], how="inner")
 
     if cellbin is True:
-        data = data[["geneID", "centroid_x", "centroid_y", "z", "cell", "MIDCounts"]].groupby(["geneID", "centroid_x", "centroid_y", "z", "cell"])["MIDCounts"].sum().to_frame("MIDCounts").reset_index()
+        data = (
+            data[["geneID", "centroid_x", "centroid_y", "z", "cell", "MIDCounts"]]
+            .groupby(["geneID", "centroid_x", "centroid_y", "z", "cell"])["MIDCounts"]
+            .sum()
+            .to_frame("MIDCounts")
+            .reset_index()
+        )
         data.columns = ["geneID", "x", "y", "z", "cell", "MIDCounts"]
         data["obs_index"] = data["cell"]
     else:
         data["obs_index"] = data["x"].astype(str) + "_" + data["y"].astype(str)
 
-    uniq_cell, uniq_gene = data["obs_index"].unique().tolist(), data["geneID"].unique().tolist()
+    uniq_cell, uniq_gene = (
+        data["obs_index"].unique().tolist(),
+        data["geneID"].unique().tolist(),
+    )
 
     cell_dict = dict(zip(uniq_cell, range(0, len(uniq_cell))))
     gene_dict = dict(zip(uniq_gene, range(0, len(uniq_gene))))
@@ -104,7 +114,10 @@ def lasso2adata(
     data["csr_y_ind"] = data["geneID"].map(gene_dict)
 
     # X
-    X = csr_matrix((data["MIDCounts"], (data["csr_x_ind"], data["csr_y_ind"])), shape=(len(uniq_cell), len(uniq_gene)))
+    X = csr_matrix(
+        (data["MIDCounts"], (data["csr_x_ind"], data["csr_y_ind"])),
+        shape=(len(uniq_cell), len(uniq_gene)),
+    )
 
     # obs
     del data["geneID"], data["MIDCounts"], data["csr_x_ind"], data["csr_y_ind"]

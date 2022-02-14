@@ -10,23 +10,23 @@ from typing import Optional, Sequence, Union
 
 
 def easy_three_d_plot(
-        mesh: Optional[pv.DataSet] = None,
-        scalar: str = "groups",
-        outline: bool = False,
-        ambient: float = 0.3,
-        opacity: float = 0.5,
-        background: str = "black",
-        background_r: str = "white",
-        save: Optional[str] = None,
-        notebook: bool = False,
-        shape: Optional[list] = None,
-        off_screen: bool = False,
-        window_size: Optional[list] = None,
-        cpos: Union[str, tuple, list] = "iso",
-        legend_loc: str = "lower right",
-        legend_size: Optional[Sequence] = None,
-        view_up: Optional[list] = None,
-        framerate: int = 15,
+    mesh: Optional[pv.DataSet] = None,
+    scalar: str = "groups",
+    outline: bool = False,
+    ambient: float = 0.3,
+    opacity: float = 0.5,
+    background: str = "black",
+    background_r: str = "white",
+    save: Optional[str] = None,
+    notebook: bool = False,
+    shape: Optional[list] = None,
+    off_screen: bool = False,
+    window_size: Optional[list] = None,
+    cpos: Union[str, tuple, list] = "iso",
+    legend_loc: str = "lower right",
+    legend_size: Optional[Sequence] = None,
+    view_up: Optional[list] = None,
+    framerate: int = 15,
 ):
     """
     Create a plotting object to display pyvista/vtk mesh.
@@ -87,7 +87,9 @@ def easy_three_d_plot(
         cpos = [cpos]
 
     if len(cpos) != len(subplot_indices):
-        raise ValueError("The number of cpos does not match the number of subplots drawn.")
+        raise ValueError(
+            "The number of cpos does not match the number of subplots drawn."
+        )
 
     # Create a plotting object to display pyvista/vtk mesh.
     p = pv.Plotter(
@@ -97,7 +99,7 @@ def easy_three_d_plot(
         window_size=window_size,
         notebook=notebook,
         border=True,
-        border_color=background_r
+        border_color=background_r,
     )
     for subplot_index, cpo in zip(subplot_indices, cpos):
 
@@ -108,19 +110,26 @@ def easy_three_d_plot(
             rgba=True,
             render_points_as_spheres=True,
             ambient=ambient,
-            opacity=opacity
+            opacity=opacity,
         )
 
         # Add a legend to render window.
-        mesh[f"{scalar}_hex"] = np.array([mpl.colors.to_hex(i) for i in mesh[f"{scalar}_rgba"]])
-        _data = pd.concat([pd.Series(mesh[scalar]), pd.Series(mesh[f"{scalar}_hex"])], axis=1)
+        mesh[f"{scalar}_hex"] = np.array(
+            [mpl.colors.to_hex(i) for i in mesh[f"{scalar}_rgba"]]
+        )
+        _data = pd.concat(
+            [pd.Series(mesh[scalar]), pd.Series(mesh[f"{scalar}_hex"])], axis=1
+        )
         _data.columns = ["label", "hex"]
         _data = _data[_data["label"] != "mask"]
         _data.drop_duplicates(inplace=True)
         _data.sort_values(by=["label", "hex"], inplace=True)
         _data = _data.astype(str)
         gap = math.ceil(len(_data.index) / 5) if scalar is "genes" else 1
-        legend_entries = [[_data["label"].iloc[i], _data["hex"].iloc[i]] for i in range(0, len(_data.index), gap)]
+        legend_entries = [
+            [_data["label"].iloc[i], _data["hex"].iloc[i]]
+            for i in range(0, len(_data.index), gap)
+        ]
         if scalar is "genes":
             legend_entries.append([_data["label"].iloc[-1], _data["hex"].iloc[-1]])
 

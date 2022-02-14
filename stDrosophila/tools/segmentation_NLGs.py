@@ -11,9 +11,7 @@ from ..obtain_dataset import fm_gene2GO
 
 
 def find_nuclear_genes(
-        path: str = None,
-        save: str = None,
-        gene_num: Union[str, int] = "all"
+    path: str = None, save: str = None, gene_num: Union[str, int] = "all"
 ) -> pd.DataFrame:
     """
     Finding nuclear localized genes in slices based on GO annotations.
@@ -38,13 +36,15 @@ def find_nuclear_genes(
     lasso_genes = lasso["geneID"].unique().tolist()
 
     # the GO terms for a particular gene list
-    go_data = fm_gene2GO(gene=lasso_genes, gene_identifier="symbol", GO_namespace="cellular_component")
+    go_data = fm_gene2GO(
+        gene=lasso_genes, gene_identifier="symbol", GO_namespace="cellular_component"
+    )
     # go_data.to_excel("E14-16h_a_S09_cellular_component.xlsx", index=False)
 
     # find nuclear-localized genes
     nucleus_info = "chromosome|chromatin|euchromatin|heterochromatin|nuclear|nucleus|nucleoplasm|nucleolus|transcription factor"
     nucleus_data = go_data[go_data["GO name"].str.contains(nucleus_info)]
-    nucleus_data = nucleus_data[~ nucleus_data["GO name"].str.contains("mitochond")]
+    nucleus_data = nucleus_data[~nucleus_data["GO name"].str.contains("mitochond")]
     nucleus_genes = nucleus_data["gene symbol"].unique().tolist()
 
     # remove pseudo positives
@@ -60,12 +60,19 @@ def find_nuclear_genes(
 
     # determine the final number of genes obtained
     if gene_num is not "all":
-        genes_exp = new_lasso[["geneID", "MIDCounts"]].groupby(["geneID"])["MIDCounts"].sum().to_frame(
-            "MIDCounts").reset_index()
+        genes_exp = (
+            new_lasso[["geneID", "MIDCounts"]]
+            .groupby(["geneID"])["MIDCounts"]
+            .sum()
+            .to_frame("MIDCounts")
+            .reset_index()
+        )
         genes_exp.sort_values(by=["MIDCounts", "geneID"], inplace=True, ascending=False)
         top_num_genes = genes_exp["geneID"].head(gene_num)
         new_lasso = new_lasso[new_lasso["geneID"].isin(top_num_genes)]
-    print(f"The number of nuclear localized genes found is: {len(new_lasso['geneID'].unique())}.")
+    print(
+        f"The number of nuclear localized genes found is: {len(new_lasso['geneID'].unique())}."
+    )
 
     # save
     if save is not None:
@@ -75,10 +82,7 @@ def find_nuclear_genes(
 
 
 def mapping2lasso(
-        total_file,
-        nucleus_file,
-        cells_file: str = None,
-        save: Optional[str] = None
+    total_file, nucleus_file, cells_file: str = None, save: Optional[str] = None
 ) -> pd.DataFrame:
     """
     Map cell type information to the original lasso file.

@@ -8,11 +8,11 @@ from .anno import symbol2fbgn, gene2tissue
 
 
 def genes_flyaltas2(
-        genes: Union[str, list] = None,
-        gene_nametype: Optional[str] = "symbol",
-        stage: Optional[str] = 'male_adult',
-        enrich_threshold: Optional[float] = 1.0,
-        fbgn_path: Optional[str] = 'deml_fbgn.tsv.gz'
+    genes: Union[str, list] = None,
+    gene_nametype: Optional[str] = "symbol",
+    stage: Optional[str] = "male_adult",
+    enrich_threshold: Optional[float] = 1.0,
+    fbgn_path: Optional[str] = "deml_fbgn.tsv.gz",
 ) -> pd.DataFrame:
     """
     Annotate a gene list based on the flyaltas2 database
@@ -40,7 +40,11 @@ def genes_flyaltas2(
 
     """
     genes = [genes] if isinstance(genes, str) else genes
-    fbgn_names = symbol2fbgn(gene=genes, datapath=fbgn_path) if gene_nametype is "symbol" else genes
+    fbgn_names = (
+        symbol2fbgn(gene=genes, datapath=fbgn_path)
+        if gene_nametype is "symbol"
+        else genes
+    )
 
     # Find the particular tissue in which the gene is specifically expressed
     anno_genes = pd.DataFrame()

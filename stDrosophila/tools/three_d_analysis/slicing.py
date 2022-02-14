@@ -33,7 +33,9 @@ def three_d_slicing(
     """
 
     if isinstance(mesh, pv.core.pointset.UnstructuredGrid) is False:
-        warnings.warn("The model should be a pyvista.UnstructuredGrid (voxelized) object.")
+        warnings.warn(
+            "The model should be a pyvista.UnstructuredGrid (voxelized) object."
+        )
         mesh = mesh.cast_to_unstructured_grid()
 
     mesh.set_active_scalars(f"{scalar}_rgba")

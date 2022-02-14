@@ -19,7 +19,7 @@ def rectangle_crop_img(src, x_start, x_end, y_start, y_end):
     x_start and x_end determine the height of the image,
     y_start and y_end determine the width of the image.
     """
-    return src[x_start: x_end, y_start:y_end]
+    return src[x_start:x_end, y_start:y_end]
 
 
 def flip_img(src, filp_method=1):
@@ -45,12 +45,15 @@ def equalhist_transfer(src, method="global", cliplimit=20):
         return clahe.apply(src)
     else:
         avail_methods = {"global", "local"}
-        raise ValueError(f"Type of histogram equalization method must be one of {avail_methods}.")
+        raise ValueError(
+            f"Type of histogram equalization method must be one of {avail_methods}."
+        )
 
 
-def output_img(img, filename, img_name="Image", window_size=(1000, 1000), show_img=True):
-    """Output image file.
-    """
+def output_img(
+    img, filename, img_name="Image", window_size=(1000, 1000), show_img=True
+):
+    """Output image file."""
     if show_img:
         cv2.namedWindow(img_name, cv2.WINDOW_NORMAL | cv2.WINDOW_KEEPRATIO)
         cv2.resizeWindow(img_name, window_size[0], window_size[1])
@@ -61,14 +64,16 @@ def output_img(img, filename, img_name="Image", window_size=(1000, 1000), show_i
     cv2.destroyAllWindows()
 
 
-def pre_photo(img,
-              rectangle_crop=None,
-              coords_flip=None,
-              ehtranfer=None,
-              color_flip=False,
-              gray_factor=None,
-              show=True,
-              save=None):
+def pre_photo(
+    img,
+    rectangle_crop=None,
+    coords_flip=None,
+    ehtranfer=None,
+    color_flip=False,
+    gray_factor=None,
+    show=True,
+    save=None,
+):
     """
     Preprocessing of original image.
 
@@ -111,12 +116,19 @@ def pre_photo(img,
         img[img > 255] = 255
 
     if rectangle_crop is not None:
-        img = rectangle_crop_img(src=img, x_start=rectangle_crop[0], x_end=rectangle_crop[1],
-                                 y_start=rectangle_crop[2], y_end=rectangle_crop[3])
+        img = rectangle_crop_img(
+            src=img,
+            x_start=rectangle_crop[0],
+            x_end=rectangle_crop[1],
+            y_start=rectangle_crop[2],
+            y_end=rectangle_crop[3],
+        )
 
     if ehtranfer is None:
         ehtranfer = {"method": "local", "cliplimit": 15}
-    img = equalhist_transfer(img, method=ehtranfer["method"], cliplimit=ehtranfer["cliplimit"])
+    img = equalhist_transfer(
+        img, method=ehtranfer["method"], cliplimit=ehtranfer["cliplimit"]
+    )
 
     if color_flip is True:
         img = cv2.bitwise_not(src=img)
@@ -124,31 +136,38 @@ def pre_photo(img,
     if coords_flip is not None:
         img = flip_img(src=img, filp_method=coords_flip)
 
-    output_img(img=img, filename=save, img_name="Image", window_size=(1000, 1000), show_img=show)
+    output_img(
+        img=img,
+        filename=save,
+        img_name="Image",
+        window_size=(1000, 1000),
+        show_img=show,
+    )
 
     return img
 
 
 def filter_coords(raw_lasso, filter_mtx):
-    """Filter the raw data corresponding to the new coordinates.
-    """
+    """Filter the raw data corresponding to the new coordinates."""
     filter_mtx_use = filter_mtx.copy()
-    filter_mtx_use['y'] = filter_mtx_use.index
-    lasso_data = pd.melt(filter_mtx_use, id_vars=['y'], value_name="MIDCounts")
+    filter_mtx_use["y"] = filter_mtx_use.index
+    lasso_data = pd.melt(filter_mtx_use, id_vars=["y"], value_name="MIDCounts")
     lasso_data = lasso_data[lasso_data["MIDCounts"] != 0][["x", "y"]]
     new_lasso = pd.merge(raw_lasso, lasso_data, on=["x", "y"], how="inner")
 
     return new_lasso
 
 
-def pre_lasso(data,
-              rectangle_crop=None,
-              ehtranfer=None,
-              color_flip=False,
-              gray_factor=None,
-              show=True,
-              save_img=None,
-              save_lasso=None):
+def pre_lasso(
+    data,
+    rectangle_crop=None,
+    ehtranfer=None,
+    color_flip=False,
+    gray_factor=None,
+    show=True,
+    save_img=None,
+    save_lasso=None,
+):
     """
     Preprocessing of original lasso data.
 
@@ -184,12 +203,22 @@ def pre_lasso(data,
     """
 
     raw_lasso = data.copy()
-    data = data[["x", "y", "MIDCounts"]].groupby(["x", "y"])["MIDCounts"].sum().to_frame("MIDCounts").reset_index()
+    data = (
+        data[["x", "y", "MIDCounts"]]
+        .groupby(["x", "y"])["MIDCounts"]
+        .sum()
+        .to_frame("MIDCounts")
+        .reset_index()
+    )
 
-    lasso_mtx = pd.pivot_table(data, index=["y"], columns=["x"], values="MIDCounts", fill_value=0)
+    lasso_mtx = pd.pivot_table(
+        data, index=["y"], columns=["x"], values="MIDCounts", fill_value=0
+    )
 
     if rectangle_crop is not None:
-        lasso_mtx = lasso_mtx.iloc[rectangle_crop[0]:rectangle_crop[1], rectangle_crop[2]:rectangle_crop[3]]
+        lasso_mtx = lasso_mtx.iloc[
+            rectangle_crop[0] : rectangle_crop[1], rectangle_crop[2] : rectangle_crop[3]
+        ]
         new_lasso = filter_coords(raw_lasso=raw_lasso, filter_mtx=lasso_mtx)
     else:
         new_lasso = raw_lasso.copy()
@@ -197,8 +226,14 @@ def pre_lasso(data,
     if save_lasso is not None:
         new_lasso.to_csv(save_lasso, sep="\t", index=False)
 
-    img = pre_photo(lasso_mtx.values, ehtranfer=ehtranfer, color_flip=color_flip,
-                    gray_factor=gray_factor, show=show, save=save_img)
+    img = pre_photo(
+        lasso_mtx.values,
+        ehtranfer=ehtranfer,
+        color_flip=color_flip,
+        gray_factor=gray_factor,
+        show=show,
+        save=save_img,
+    )
     return new_lasso, img
 
 
@@ -225,8 +260,16 @@ def cropbyphoto(data, img, background=0, save=None):
     """
 
     raw_lasso = data.copy()
-    data = data[["x", "y", "MIDCounts"]].groupby(["x", "y"])["MIDCounts"].sum().to_frame("MIDCounts").reset_index()
-    raw_mtx = pd.pivot_table(data, index=["y"], columns=["x"], values="MIDCounts", fill_value=0)
+    data = (
+        data[["x", "y", "MIDCounts"]]
+        .groupby(["x", "y"])["MIDCounts"]
+        .sum()
+        .to_frame("MIDCounts")
+        .reset_index()
+    )
+    raw_mtx = pd.pivot_table(
+        data, index=["y"], columns=["x"], values="MIDCounts", fill_value=0
+    )
     img[img == background] = 0
     new_mtx = pd.DataFrame(img, index=raw_mtx.index, columns=raw_mtx.columns)
     new_lasso = filter_coords(raw_lasso=raw_lasso, filter_mtx=new_mtx)

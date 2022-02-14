@@ -5,8 +5,7 @@ from typing import Optional, Union
 
 
 def fm_BDGP(
-        gene: Union[str, list] = 'all',
-        gene_identifier: str = 'symbol'
+    gene: Union[str, list] = "all", gene_identifier: str = "symbol"
 ) -> pd.DataFrame:
     """
     Three functions:
@@ -44,7 +43,7 @@ def fm_BDGP(
         "organism.name",
         "mRNAExpressionResults.expressed",
         "mRNAExpressionResults.stageRange",
-        "mRNAExpressionResults.mRNAExpressionTerms.name"
+        "mRNAExpressionResults.mRNAExpressionTerms.name",
     )
 
     if gene is "all":
@@ -61,20 +60,27 @@ def fm_BDGP(
                 row["symbol"],
                 row["mRNAExpressionResults.expressed"],
                 row["mRNAExpressionResults.stageRange"],
-                row["mRNAExpressionResults.mRNAExpressionTerms.name"]
+                row["mRNAExpressionResults.mRNAExpressionTerms.name"],
             ]
             for row in query.rows()
         ],
-        columns=["DB identifier", "CG identifier", "gene symbol", "expressed", 'StageRange', 'mRNAExpressionTerms']
+        columns=[
+            "DB identifier",
+            "CG identifier",
+            "gene symbol",
+            "expressed",
+            "StageRange",
+            "mRNAExpressionTerms",
+        ],
     )
 
     return data
 
 
 def fm_gene2GO(
-        gene: Union[str, list] = 'all',
-        gene_identifier: str = 'symbol',
-        GO_namespace: Union[str, list] = 'all'
+    gene: Union[str, list] = "all",
+    gene_identifier: str = "symbol",
+    GO_namespace: Union[str, list] = "all",
 ) -> pd.DataFrame:
     """
     Three functions:
@@ -119,7 +125,7 @@ def fm_gene2GO(
         "goAnnotation.ontologyTerm.identifier",
         "goAnnotation.ontologyTerm.name",
         "goAnnotation.ontologyTerm.namespace",
-        "goAnnotation.ontologyTerm.description"
+        "goAnnotation.ontologyTerm.description",
     )
 
     query.add_sort_order("Gene.secondaryIdentifier", "ASC")
@@ -131,8 +137,12 @@ def fm_gene2GO(
         query.add_constraint(gene_identifier, "ONE OF", gene_list, code="A")
 
     if GO_namespace is not "all":
-        GO_namespace_list = GO_namespace if isinstance(GO_namespace, list) else [GO_namespace]
-        query.add_constraint("goAnnotation.ontologyTerm.namespace", "ONE OF", GO_namespace_list, code="A")
+        GO_namespace_list = (
+            GO_namespace if isinstance(GO_namespace, list) else [GO_namespace]
+        )
+        query.add_constraint(
+            "goAnnotation.ontologyTerm.namespace", "ONE OF", GO_namespace_list, code="A"
+        )
 
     data = pd.DataFrame(
         [
@@ -147,7 +157,15 @@ def fm_gene2GO(
             ]
             for row in query.rows()
         ],
-        columns=["DB identifier", "CG identifier", "gene symbol", "GO id", "GO name", "GO namespace", "GO description"]
+        columns=[
+            "DB identifier",
+            "CG identifier",
+            "gene symbol",
+            "GO id",
+            "GO name",
+            "GO namespace",
+            "GO description",
+        ],
     )
 
     return data

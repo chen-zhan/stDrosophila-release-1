@@ -1,5 +1,3 @@
-import math
-import re
 
 import matplotlib as mpl
 import numpy as np
@@ -12,13 +10,11 @@ import seaborn as sns
 from anndata import AnnData
 from pandas.core.frame import DataFrame
 from pyvista.core.pointset import PolyData, UnstructuredGrid
-from typing import Optional, Sequence, Tuple, Union
+from typing import Optional, Tuple, Union
 
 
 def smoothing_mesh(
-    adata: AnnData,
-    coordsby: str = "spatial",
-    n_surf: int = 10000
+    adata: AnnData, coordsby: str = "spatial", n_surf: int = 10000
 ) -> Tuple[AnnData, PolyData]:
     """
     Takes a uniformly meshed surface using voronoi clustering and
@@ -101,7 +97,9 @@ def three_d_color(
     if isinstance(colormap, str):
         colormap = [
             mpl.colors.to_hex(i, keep_alpha=False)
-            for i in sns.color_palette(palette=colormap, n_colors=len(color_types), as_cmap=False)
+            for i in sns.color_palette(
+                palette=colormap, n_colors=len(color_types), as_cmap=False
+            )
         ]
     if isinstance(colormap, list):
         colormap = {t: color for t, color in zip(color_types, colormap)}
@@ -131,7 +129,7 @@ def build_three_d_model(
     n_surf: int = 10000,
     voxelize: bool = True,
     voxel_size: Optional[list] = None,
-    voxel_smooth: Optional[int] = 200
+    voxel_smooth: Optional[int] = 200,
 ) -> UnstructuredGrid:
     """
     Reconstruct a voxelized 3D model.
@@ -164,24 +162,36 @@ def build_three_d_model(
     float_type = np.float64
 
     # takes a uniformly meshed surface and clip the original mesh using the reconstructed surface if smoothing is True.
-    _adata, uniform_surf = smoothing_mesh(adata=adata, coordsby=coordsby, n_surf=n_surf) if smoothing else (adata, None)
+    _adata, uniform_surf = (
+        smoothing_mesh(adata=adata, coordsby=coordsby, n_surf=n_surf)
+        if smoothing
+        else (adata, None)
+    )
 
     # filter group info
     if groupby is None:
         n_points = _adata.obs.shape[0]
-        groups = pd.Series(["same"]*n_points, index=_adata.obs.index, dtype=str)
+        groups = pd.Series(["same"] * n_points, index=_adata.obs.index, dtype=str)
     else:
         if isinstance(group_show, str) and group_show is "all":
             groups = _adata.obs[groupby]
         elif isinstance(group_show, str) and group_show is not "all":
-            groups = _adata.obs[groupby].map(lambda x: str(x) if x == group_show else "mask")
+            groups = _adata.obs[groupby].map(
+                lambda x: str(x) if x == group_show else "mask"
+            )
         elif isinstance(group_show, list) or isinstance(group_show, tuple):
-            groups = _adata.obs[groupby].map(lambda x: str(x) if x in group_show else "mask")
+            groups = _adata.obs[groupby].map(
+                lambda x: str(x) if x in group_show else "mask"
+            )
         else:
             raise ValueError("`group_show` value is wrong.")
 
     # filter gene expression info
-    genes_exp = _adata.X.sum(axis=1) if gene_show == "all" else _adata[:, gene_show].X.sum(axis=1)
+    genes_exp = (
+        _adata.X.sum(axis=1)
+        if gene_show == "all"
+        else _adata[:, gene_show].X.sum(axis=1)
+    )
     genes_exp = pd.DataFrame(genes_exp, index=groups.index, dtype=float_type)
     genes_data = pd.concat([groups, genes_exp], axis=1)
     genes_data.columns = ["groups", "genes_exp"]
@@ -194,7 +204,11 @@ def build_three_d_model(
     if isinstance(bucket_xyz, DataFrame):
         bucket_xyz = bucket_xyz.values
     points = pv.PolyData(bucket_xyz).cast_to_unstructured_grid()
-    surface = points.delaunay_3d().extract_geometry() if uniform_surf is None else uniform_surf
+    surface = (
+        points.delaunay_3d().extract_geometry()
+        if uniform_surf is None
+        else uniform_surf
+    )
 
     # Voxelize the cloud and the surface
     if voxelize:
@@ -217,7 +231,9 @@ def build_three_d_model(
         mask_alpha=mask_alpha,
     ).astype(float_type)
 
-    points.cell_data["genes"] = new_genes_exp.map(lambda x: 0 if x == "mask" else x).astype(float_type).values
+    points.cell_data["genes"] = (
+        new_genes_exp.map(lambda x: 0 if x == "mask" else x).astype(float_type).values
+    )
     points.cell_data["genes_rgba"] = three_d_color(
         series=new_genes_exp,
         colormap=gene_cmap,

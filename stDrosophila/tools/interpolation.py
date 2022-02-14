@@ -1,4 +1,3 @@
-
 import numpy as np
 
 from anndata import AnnData
@@ -6,7 +5,9 @@ from dynamo.vectorfield import vector_field_function
 from dynamo.vectorfield.scVectorField import SparseVFC
 
 
-def interpolation_SparseVFC(adata, genes=None, grid_num=50, lambda_=0.02, lstsq_method="scipy", **kwargs) -> AnnData:
+def interpolation_SparseVFC(
+    adata, genes=None, grid_num=50, lambda_=0.02, lstsq_method="scipy", **kwargs
+) -> AnnData:
     """
     predict missing location’s gene expression and learn a continuous gene expression pattern over space.
     (Not only for 3D coordinate data, but also for 2D coordinate data.)
@@ -40,10 +41,15 @@ def interpolation_SparseVFC(adata, genes=None, grid_num=50, lambda_=0.02, lstsq_
     V = adata[:, genes].X - adata[:, genes].X.mean(0)
 
     # Generate grid
-    min_vec, max_vec = X.min(0), X.max(0),
+    min_vec, max_vec = (
+        X.min(0),
+        X.max(0),
+    )
     min_vec = min_vec - 0.01 * np.abs(max_vec - min_vec)
     max_vec = max_vec + 0.01 * np.abs(max_vec - min_vec)
-    Grid_list = np.meshgrid(*[np.linspace(i, j, grid_num) for i, j in zip(min_vec, max_vec)])
+    Grid_list = np.meshgrid(
+        *[np.linspace(i, j, grid_num) for i, j in zip(min_vec, max_vec)]
+    )
     Grid = np.array([i.flatten() for i in Grid_list]).T
 
     # Get the new adata after interpolation (Not only for 3D coordinate data, but also for 2D coordinate data).
