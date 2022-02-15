@@ -40,6 +40,7 @@ def smoothing_mesh(
 
     # takes a surface mesh and returns a uniformly meshed surface using voronoi clustering.
     surf = grid.delaunay_3d().extract_geometry()
+    #surf.smooth(n_iter=1000)
     surf.subdivide(nsub=3, subfilter="loop", inplace=True)
     clustered = pyacvd.Clustering(surf)
     # clustered.subdivide(3)

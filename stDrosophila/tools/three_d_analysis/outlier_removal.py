@@ -16,7 +16,7 @@ def om_kde(
 ):
     """Outlier detection processing based on kernel density estimation."""
 
-    coords = adata.obsm[coordsby].values
+    coords = adata.obsm[coordsby]
     adata.obs["coords_kde"] = KernelDensity(kernel=kernel, bandwidth=bandwidth).fit(coords).score_samples(coords)
 
     CV = adata.obs["coords_kde"].describe(percentiles=[percent])[f"{int(percent*100)}%"]
