@@ -125,6 +125,7 @@ def build_three_d_model(
     gene_amap: float = 1.0,
     mask_color: str = "gainsboro",
     mask_alpha: float = 0,
+    surf_color: str = "gainsboro",
     surf_alpha: float = 0.5,
     smoothing: bool = True,
     n_surf: int = 10000,
@@ -146,7 +147,8 @@ def build_three_d_model(
         gene_amap: The opacity of the colors to use for plotting genes. The default gene_amap is `1.0`.
         mask_color: Color to use for plotting mask. The default mask_color is `'gainsboro'`.
         mask_alpha: The opacity of the color to use for plotting mask. The default mask_alpha is `0.0`.
-        surf_alpha: The opacity of the color to use for surface. The default mask_alpha is `0.5`.
+        surf_color: Color to use for plotting surface. The default mask_color is `'gainsboro'`.
+        surf_alpha: The opacity of the color to use for plotting surface. The default mask_alpha is `0.5`.
         smoothing: Smoothing the surface of the reconstructed 3D structure.
         n_surf: The number of faces obtained using voronoi clustering. The larger the n_surf, the smoother the surface. Only valid when smoothing is True.
         voxelize: Voxelize the reconstructed 3D structure.
@@ -245,12 +247,12 @@ def build_three_d_model(
 
     surface.cell_data["groups"] = np.array(["mask"] * surface.n_cells).astype(str)
     surface.cell_data["groups_rgba"] = np.array(
-        [mpl.colors.to_rgba(mask_color, alpha=surf_alpha)] * surface.n_cells
+        [mpl.colors.to_rgba(surf_color, alpha=surf_alpha)] * surface.n_cells
     ).astype(float_type)
 
     surface.cell_data["genes"] = np.array([0] * surface.n_cells).astype(float_type)
     surface.cell_data["genes_rgba"] = np.array(
-        [mpl.colors.to_rgba(mask_color, alpha=surf_alpha)] * surface.n_cells
+        [mpl.colors.to_rgba(surf_color, alpha=surf_alpha)] * surface.n_cells
     ).astype(float_type)
 
     # Merge points and surface into a single mesh.
