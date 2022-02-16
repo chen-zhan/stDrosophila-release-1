@@ -13,8 +13,77 @@ from pyvista.core.pointset import PolyData, UnstructuredGrid
 from typing import Optional, Tuple, Union
 
 
+def create_points(
+    adata: AnnData,
+    coordsby: str = "spatial",
+    ptype: str = "polydata",
+    coodtype: type = np.float64
+) -> PolyData or UnstructuredGrid:
+    """
+    Create a point cloud based on 3D coordinate information.
+
+    Args:
+        adata: AnnData object.
+        coordsby: The key from adata.obsm whose value will be used to reconstruct the 3D structure.
+        ptype: The type of point cloud to output. The ptype must be `polydata` or `unstructured`.
+        coodtype: Data type of 3D coordinate information.
+
+    Returns:
+        A point cloud.
+    """
+
+    bucket_xyz = adata.obsm[coordsby].astype(coodtype)
+    if isinstance(bucket_xyz, DataFrame):
+        bucket_xyz = bucket_xyz.values
+
+    if ptype == "polydata":
+        return pv.PolyData(bucket_xyz)
+    elif ptype == "unstructured":
+        return pv.PolyData(bucket_xyz).cast_to_unstructured_grid()
+    else:
+        raise ValueError("\n`ptype` value is wrong..The parameter `ptype` must be `polydata` or `unstructured`.\n")
+
+
+def create_surf(
+    points: PolyData,
+    slide: Union[bool, int] = False
+) -> PolyData:
+    """
+    Surface reconstruction from 3D point cloud.
+
+    Args:
+        points: A point cloud grid.
+        slide: When `slide`==False, use all 3D coordinates for surface reconstruction.
+               When `slide`==number(2, 3,...), the 3D coordinates of the `slide` layers (z-axis) are used for surface
+               reconstruction separately, and all generated surfaces are merged at the end.
+
+    Returns:
+        A surface mesh.
+    """
+
+    if slide is False:
+        return points.delaunay_3d().extract_surface()
+    else:
+        z_data = pd.Series(points.points[:, 2])
+        layers = np.unique(z_data.tolist())
+        n_layer_groups = len(layers) - slide + 1
+        layer_groups = [layers[i: i + slide] for i in range(n_layer_groups)]
+
+        grid = points.extract_points(z_data.isin(layer_groups[0])).delaunay_3d()
+        for layer_group in layer_groups[1:]:
+            sub_group_points = points.extract_points(z_data.isin(layer_group))
+            sub_group_grid = sub_group_points.delaunay_3d()
+            grid = grid.merge(sub_group_grid)
+
+        return grid.extract_surface()
+
+
 def smoothing_mesh(
-    adata: AnnData, coordsby: str = "spatial", n_surf: int = 10000
+    adata: AnnData,
+    coordsby: str = "spatial",
+    slide: Union[bool, int] = False,
+    n_surf: int = 10000,
+    coodtype: type = np.float64
 ) -> Tuple[AnnData, PolyData]:
     """
     Takes a uniformly meshed surface using voronoi clustering and
@@ -23,23 +92,22 @@ def smoothing_mesh(
     Args:
         adata: AnnData object.
         coordsby: The key from adata.obsm whose value will be used to reconstruct the 3D structure.
+        slide: When `slide`==False, use all 3D coordinates for surface reconstruction.
+               When `slide`==number(2, 3,...), the 3D coordinates of the `slide` layers (z-axis) are used for surface
+               reconstruction separately, and all generated surfaces are merged at the end.
         n_surf: The number of faces obtained using voronoi clustering. The larger the number, the smoother the surface.
+        coodtype: Data type of 3D coordinate information.
 
     Returns:
         clipped_adata: AnnData object that is clipped.
         uniform_surf: A uniformly meshed surface.
     """
 
-    float_type = np.float64
-
-    bucket_xyz = adata.obsm[coordsby].astype(float_type)
-    if isinstance(bucket_xyz, DataFrame):
-        bucket_xyz = bucket_xyz.values
-    grid = pv.PolyData(bucket_xyz)
+    grid = create_points(adata=adata, coordsby=coordsby, ptype="polydata", coodtype=coodtype)
     grid["index"] = adata.obs_names.to_numpy()
 
     # takes a surface mesh and returns a uniformly meshed surface using voronoi clustering.
-    surf = grid.delaunay_3d().extract_geometry()
+    surf = create_surf(points=grid, slide=slide)
     #surf.smooth(n_iter=1000)
     surf.subdivide(nsub=3, subfilter="loop", inplace=True)
     clustered = pyacvd.Clustering(surf)
@@ -127,11 +195,14 @@ def build_three_d_model(
     mask_alpha: float = 0,
     surf_color: str = "gainsboro",
     surf_alpha: float = 0.5,
+    slide: Union[str, bool] = False,
     smoothing: bool = True,
     n_surf: int = 10000,
     voxelize: bool = True,
     voxel_size: Optional[list] = None,
     voxel_smooth: Optional[int] = 200,
+    coodtype: type = np.float64,
+    expdtype: type = np.float64,
 ) -> UnstructuredGrid:
     """
     Reconstruct a voxelized 3D model.
@@ -149,11 +220,16 @@ def build_three_d_model(
         mask_alpha: The opacity of the color to use for plotting mask. The default mask_alpha is `0.0`.
         surf_color: Color to use for plotting surface. The default mask_color is `'gainsboro'`.
         surf_alpha: The opacity of the color to use for plotting surface. The default mask_alpha is `0.5`.
+        slide: When `slide`==False, use all 3D coordinates for surface reconstruction.
+               When `slide`==number(2, 3,...), the 3D coordinates of the `slide` layers (z-axis) are used for surface
+               reconstruction separately, and all generated surfaces are merged at the end.
         smoothing: Smoothing the surface of the reconstructed 3D structure.
         n_surf: The number of faces obtained using voronoi clustering. The larger the n_surf, the smoother the surface. Only valid when smoothing is True.
         voxelize: Voxelize the reconstructed 3D structure.
         voxel_size: The size of the voxelized points. A list of three elements.
         voxel_smooth: The smoothness of the voxelized surface. Only valid when voxelize is True.
+        coodtype: Data type of 3D coordinate information.
+        expdtype: Data type of gene expression.
     Returns:
         mesh: Reconstructed 3D structure, which contains the following properties:
             groups: `mesh['groups']`, the mask and the groups used for display.
@@ -162,11 +238,9 @@ def build_three_d_model(
             genes_rgba: `mesh['genes_rgba']`, the rgba colors for plotting genes and mask.
     """
 
-    float_type = np.float64
-
     # takes a uniformly meshed surface and clip the original mesh using the reconstructed surface if smoothing is True.
     _adata, uniform_surf = (
-        smoothing_mesh(adata=adata, coordsby=coordsby, n_surf=n_surf)
+        smoothing_mesh(adata=adata, coordsby=coordsby, slide=slide, n_surf=n_surf, coodtype=coodtype)
         if smoothing
         else (adata, None)
     )
@@ -187,7 +261,7 @@ def build_three_d_model(
                 lambda x: str(x) if x in group_show else "mask"
             )
         else:
-            raise ValueError("`group_show` value is wrong.")
+            raise ValueError("\n`group_show` value is wrong.\n")
 
     # filter gene expression info
     genes_exp = (
@@ -195,7 +269,7 @@ def build_three_d_model(
         if gene_show == "all"
         else _adata[:, gene_show].X.sum(axis=1)
     )
-    genes_exp = pd.DataFrame(genes_exp, index=groups.index, dtype=float_type)
+    genes_exp = pd.DataFrame(genes_exp, index=groups.index, dtype=expdtype)
     genes_data = pd.concat([groups, genes_exp], axis=1)
     genes_data.columns = ["groups", "genes_exp"]
     new_genes_exp = genes_data[["groups", "genes_exp"]].apply(
@@ -203,12 +277,9 @@ def build_three_d_model(
     )
 
     # Create a point cloud(Unstructured) and its surface.
-    bucket_xyz = _adata.obsm[coordsby].astype(float_type)
-    if isinstance(bucket_xyz, DataFrame):
-        bucket_xyz = bucket_xyz.values
-    points = pv.PolyData(bucket_xyz).cast_to_unstructured_grid()
+    points = create_points(adata=_adata, coordsby=coordsby, ptype="unstructured", coodtype=coodtype)
     surface = (
-        points.delaunay_3d().extract_geometry()
+        create_surf(points=points, slide=slide)
         if uniform_surf is None
         else uniform_surf
     )
@@ -232,10 +303,10 @@ def build_three_d_model(
         alphamap=group_amap,
         mask_color=mask_color,
         mask_alpha=mask_alpha,
-    ).astype(float_type)
+    ).astype(np.float64)
 
     points.cell_data["genes"] = (
-        new_genes_exp.map(lambda x: 0 if x == "mask" else x).astype(float_type).values
+        new_genes_exp.map(lambda x: 0 if x == "mask" else x).astype(expdtype).values
     )
     points.cell_data["genes_rgba"] = three_d_color(
         series=new_genes_exp,
@@ -243,17 +314,17 @@ def build_three_d_model(
         alphamap=gene_amap,
         mask_color=mask_color,
         mask_alpha=mask_alpha,
-    ).astype(float_type)
+    ).astype(np.float64)
 
     surface.cell_data["groups"] = np.array(["mask"] * surface.n_cells).astype(str)
     surface.cell_data["groups_rgba"] = np.array(
         [mpl.colors.to_rgba(surf_color, alpha=surf_alpha)] * surface.n_cells
-    ).astype(float_type)
+    ).astype(np.float64)
 
-    surface.cell_data["genes"] = np.array([0] * surface.n_cells).astype(float_type)
+    surface.cell_data["genes"] = np.array([0] * surface.n_cells).astype(expdtype)
     surface.cell_data["genes_rgba"] = np.array(
         [mpl.colors.to_rgba(surf_color, alpha=surf_alpha)] * surface.n_cells
-    ).astype(float_type)
+    ).astype(np.float64)
 
     # Merge points and surface into a single mesh.
     mesh = surface.merge(points)
