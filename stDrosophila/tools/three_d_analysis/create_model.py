@@ -69,13 +69,13 @@ def create_surf(
         n_layer_groups = len(layers) - slide + 1
         layer_groups = [layers[i: i + slide] for i in range(n_layer_groups)]
 
-        grid = points.extract_points(z_data.isin(layer_groups[0])).delaunay_3d()
+        surf = points.extract_points(z_data.isin(layer_groups[0])).delaunay_3d().extract_surface()
         for layer_group in layer_groups[1:]:
             sub_group_points = points.extract_points(z_data.isin(layer_group))
-            sub_group_grid = sub_group_points.delaunay_3d()
-            grid = grid.merge(sub_group_grid)
+            sub_group_surf = sub_group_points.delaunay_3d().extract_surface(nonlinear_subdivision=0)
+            surf = surf.boolean_union(sub_group_surf)
 
-        return grid.extract_surface()
+        return surf
 
 
 def smoothing_mesh(
