@@ -31,7 +31,7 @@ def easy_three_d_plot(
     legend_loc: Literal["upper right", "upper left",
                         "lower left", "lower right",
                         "center left", "lower center",
-                        "upper center", "center"] = "upper right",
+                        "upper center", "center"] = "lower right",
     legend_size: Optional[Sequence] = None,
     view_up: Optional[list] = None,
     framerate: int = 15,

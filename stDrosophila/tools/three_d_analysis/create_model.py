@@ -147,12 +147,13 @@ def smoothing_mesh(
     """
 
     points = create_points(adata=adata, coordsby=coordsby, ptype="polydata", coodtype=coodtype)
-    points["index"] = adata.obs_names.to_numpy()
+    points.point_data["index"] = adata.obs_names.to_numpy()
 
     # takes a surface mesh and returns a uniformly meshed surface using voronoi clustering.
     surf = create_surf(pcd=points, cs_method=cs_method, cs_method_args=cs_method_args)
-    #surf.smooth(n_iter=1000)
-    surf.subdivide(nsub=3, subfilter="loop", inplace=True)
+    surf.triangulate(inplace=True)
+    surf.smooth(n_iter=100, inplace=True)
+    surf.subdivide_adaptive(max_n_passes=2, inplace=True)
     clustered = pyacvd.Clustering(surf)
     # clustered.subdivide(3)
     clustered.cluster(n_surf)
@@ -160,7 +161,7 @@ def smoothing_mesh(
 
     # Clip the original mesh using the reconstructed surface.
     clipped_grid = points.clip_surface(uniform_surf)
-    clipped_adata = adata[clipped_grid["index"], :]
+    clipped_adata = adata[clipped_grid.point_data["index"], :]
 
     clipped_points = pd.DataFrame()
     clipped_points[0] = list(map(tuple, clipped_grid.points.round(5)))
