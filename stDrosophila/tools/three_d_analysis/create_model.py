@@ -1,6 +1,7 @@
 
 import matplotlib as mpl
 import numpy as np
+import open3d as o3d
 import pandas as pd
 import pyacvd
 import pyvista as pv
@@ -12,11 +13,16 @@ from pandas.core.frame import DataFrame
 from pyvista.core.pointset import PolyData, UnstructuredGrid
 from typing import Optional, Tuple, Union
 
+try:
+    from typing import Literal
+except ImportError:
+    from typing_extensions import Literal
+
 
 def create_points(
     adata: AnnData,
     coordsby: str = "spatial",
-    ptype: str = "polydata",
+    ptype: Literal["polydata", "unstructured"] = "polydata",
     coodtype: type = np.float64
 ) -> PolyData or UnstructuredGrid:
     """
@@ -45,43 +51,81 @@ def create_points(
 
 
 def create_surf(
-    points: PolyData,
-    slide: Union[bool, int] = False
+    pcd: PolyData,
+    cs_method: Literal["basic", "slide", "alpha_shape", "ball_pivoting", "poisson"] = "basic",
+    cs_method_args: dict = None
 ) -> PolyData:
     """
     Surface reconstruction from 3D point cloud.
 
     Args:
-        points: A point cloud grid.
-        slide: When `slide`==False, use all 3D coordinates for surface reconstruction.
-               When `slide`==number(2, 3,...), the 3D coordinates of the `slide` layers (z-axis) are used for surface
-               reconstruction separately, and all generated surfaces are merged at the end.
+        pcd: A point cloud grid.
+        cs_method: Create surface methods.
+        cs_method_args: Parameters for various surface reconstruction methods.
 
     Returns:
         A surface mesh.
     """
 
-    if slide is False:
-        return points.delaunay_3d().extract_surface()
-    else:
-        z_data = pd.Series(points.points[:, 2])
+    if cs_method == "basic":
+        return pcd.delaunay_3d().extract_surface()
+
+    elif cs_method == "slide":
+        n_slide = 3 if cs_method_args is None else cs_method_args["n_slide"]
+
+        z_data = pd.Series(pcd.points[:, 2])
         layers = np.unique(z_data.tolist())
-        n_layer_groups = len(layers) - slide + 1
-        layer_groups = [layers[i: i + slide] for i in range(n_layer_groups)]
+        n_layer_groups = len(layers) - n_slide + 1
+        layer_groups = [layers[i: i + n_slide] for i in range(n_layer_groups)]
 
-        surf = points.extract_points(z_data.isin(layer_groups[0])).delaunay_3d().extract_surface()
-        for layer_group in layer_groups[1:]:
-            sub_group_points = points.extract_points(z_data.isin(layer_group))
-            sub_group_surf = sub_group_points.delaunay_3d().extract_surface(nonlinear_subdivision=0)
-            surf = surf.boolean_union(sub_group_surf)
+        points = np.empty(shape=[0, 3])
+        for layer_group in layer_groups:
+            lg_points = pcd.extract_points(z_data.isin(layer_group))
 
-        return surf
+            lg_grid = lg_points.delaunay_3d().extract_surface()
+            lg_grid.subdivide(nsub=2, subfilter="loop", inplace=True)
+
+            points = np.concatenate((points, lg_grid.points), axis=0)
+
+        return pv.PolyData(points).delaunay_3d().extract_surface()
+
+    elif cs_method in ["alpha_shape", "ball_pivoting", "poisson"]:
+        _pcd = o3d.geometry.PointCloud()
+        _pcd.points = o3d.utility.Vector3dVector(pcd.points)
+
+        if cs_method == "alpha_shape":
+            alpha = 3 if cs_method_args is None else cs_method_args["alpha"]
+            mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_alpha_shape(_pcd, alpha)
+
+        elif cs_method == "ball_pivoting":
+            radii = [10, 10, 10, 10] if cs_method_args is None else cs_method_args["radii"]
+            _pcd.normals = o3d.utility.Vector3dVector(np.zeros((1, 3)))  # invalidate existing normals
+            _pcd.estimate_normals()
+            mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_ball_pivoting(_pcd, o3d.utility.DoubleVector(radii))
+
+        else:
+            depth, density_threshold = 5, 0.5 if cs_method_args is None else cs_method_args["depth", "density_threshold"]
+            with o3d.utility.VerbosityContextManager(o3d.utility.VerbosityLevel.Debug) as cm:
+                _pcd.normals = o3d.utility.Vector3dVector(np.zeros((1, 3)))  # invalidate existing normals
+                _pcd.estimate_normals()
+                mesh, densities = o3d.geometry.TriangleMesh.create_from_point_cloud_poisson(_pcd, depth=depth)
+            mesh.remove_vertices_by_mask(np.asarray(densities) < np.quantile(densities, density_threshold))
+
+        _vertices = np.asarray(mesh.vertices)
+        _faces = np.asarray(mesh.triangles)
+        _faces = np.concatenate((np.ones((_faces.shape[0], 1), dtype=np.int64) * 3, _faces), axis=1)
+
+        return pv.PolyData(_vertices, _faces.ravel())
+
+    else:
+        raise ValueError("\n`method` value is wrong. Available `method` are: `basic` , `slide` ,`alpha_shape`, `ball_pivoting`, `poisson`.")
 
 
 def smoothing_mesh(
     adata: AnnData,
     coordsby: str = "spatial",
-    slide: Union[bool, int] = False,
+    cs_method: Literal["basic", "slide", "alpha_shape", "ball_pivoting", "poisson"] = "basic",
+    cs_method_args: dict = None,
     n_surf: int = 10000,
     coodtype: type = np.float64
 ) -> Tuple[AnnData, PolyData]:
@@ -92,9 +136,8 @@ def smoothing_mesh(
     Args:
         adata: AnnData object.
         coordsby: The key from adata.obsm whose value will be used to reconstruct the 3D structure.
-        slide: When `slide`==False, use all 3D coordinates for surface reconstruction.
-               When `slide`==number(2, 3,...), the 3D coordinates of the `slide` layers (z-axis) are used for surface
-               reconstruction separately, and all generated surfaces are merged at the end.
+        cs_method: Create surface methods.
+        cs_method_args: Parameters for various surface reconstruction methods.
         n_surf: The number of faces obtained using voronoi clustering. The larger the number, the smoother the surface.
         coodtype: Data type of 3D coordinate information.
 
@@ -103,11 +146,11 @@ def smoothing_mesh(
         uniform_surf: A uniformly meshed surface.
     """
 
-    grid = create_points(adata=adata, coordsby=coordsby, ptype="polydata", coodtype=coodtype)
-    grid["index"] = adata.obs_names.to_numpy()
+    points = create_points(adata=adata, coordsby=coordsby, ptype="polydata", coodtype=coodtype)
+    points["index"] = adata.obs_names.to_numpy()
 
     # takes a surface mesh and returns a uniformly meshed surface using voronoi clustering.
-    surf = create_surf(points=grid, slide=slide)
+    surf = create_surf(pcd=points, cs_method=cs_method, cs_method_args=cs_method_args)
     #surf.smooth(n_iter=1000)
     surf.subdivide(nsub=3, subfilter="loop", inplace=True)
     clustered = pyacvd.Clustering(surf)
@@ -116,7 +159,7 @@ def smoothing_mesh(
     uniform_surf = clustered.create_mesh()
 
     # Clip the original mesh using the reconstructed surface.
-    clipped_grid = grid.clip_surface(uniform_surf)
+    clipped_grid = points.clip_surface(uniform_surf)
     clipped_adata = adata[clipped_grid["index"], :]
 
     clipped_points = pd.DataFrame()
@@ -195,7 +238,8 @@ def build_three_d_model(
     mask_alpha: float = 0,
     surf_color: str = "gainsboro",
     surf_alpha: float = 0.5,
-    slide: Union[str, bool] = False,
+    cs_method: Literal["basic", "slide", "alpha_shape", "ball_pivoting", "poisson"] = "basic",
+    cs_method_args: dict = None,
     smoothing: bool = True,
     n_surf: int = 10000,
     voxelize: bool = True,
@@ -220,9 +264,8 @@ def build_three_d_model(
         mask_alpha: The opacity of the color to use for plotting mask. The default mask_alpha is `0.0`.
         surf_color: Color to use for plotting surface. The default mask_color is `'gainsboro'`.
         surf_alpha: The opacity of the color to use for plotting surface. The default mask_alpha is `0.5`.
-        slide: When `slide`==False, use all 3D coordinates for surface reconstruction.
-               When `slide`==number(2, 3,...), the 3D coordinates of the `slide` layers (z-axis) are used for surface
-               reconstruction separately, and all generated surfaces are merged at the end.
+        cs_method: Create surface methods.
+        cs_method_args: Parameters for various surface reconstruction methods.
         smoothing: Smoothing the surface of the reconstructed 3D structure.
         n_surf: The number of faces obtained using voronoi clustering. The larger the n_surf, the smoother the surface. Only valid when smoothing is True.
         voxelize: Voxelize the reconstructed 3D structure.
@@ -240,7 +283,8 @@ def build_three_d_model(
 
     # takes a uniformly meshed surface and clip the original mesh using the reconstructed surface if smoothing is True.
     _adata, uniform_surf = (
-        smoothing_mesh(adata=adata, coordsby=coordsby, slide=slide, n_surf=n_surf, coodtype=coodtype)
+        smoothing_mesh(adata=adata, coordsby=coordsby, cs_method=cs_method,
+                       cs_method_args=cs_method_args, n_surf=n_surf, coodtype=coodtype)
         if smoothing
         else (adata, None)
     )
@@ -269,7 +313,7 @@ def build_three_d_model(
         if gene_show == "all"
         else _adata[:, gene_show].X.sum(axis=1)
     )
-    genes_exp = pd.DataFrame(genes_exp, index=groups.index, dtype=expdtype)
+    genes_exp = pd.DataFrame(genes_exp, index=groups.index).astype(expdtype)
     genes_data = pd.concat([groups, genes_exp], axis=1)
     genes_data.columns = ["groups", "genes_exp"]
     new_genes_exp = genes_data[["groups", "genes_exp"]].apply(
@@ -279,7 +323,7 @@ def build_three_d_model(
     # Create a point cloud(Unstructured) and its surface.
     points = create_points(adata=_adata, coordsby=coordsby, ptype="unstructured", coodtype=coodtype)
     surface = (
-        create_surf(points=points, slide=slide)
+        create_surf(pcd=points, cs_method=cs_method, cs_method_args=cs_method_args)
         if uniform_surf is None
         else uniform_surf
     )
