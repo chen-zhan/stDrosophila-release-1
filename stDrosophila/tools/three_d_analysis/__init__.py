@@ -1,4 +1,4 @@
-from .convolutional_occupancy_networks import *
+
 from .create_model import *
 from .outlier_removal import *
 from .slicing import three_d_slicing

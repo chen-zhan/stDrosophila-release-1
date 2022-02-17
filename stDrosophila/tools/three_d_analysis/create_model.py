@@ -104,7 +104,7 @@ def create_surf(
             mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_ball_pivoting(_pcd, o3d.utility.DoubleVector(radii))
 
         else:
-            depth, density_threshold = 5, 0.5 if cs_method_args is None else cs_method_args["depth", "density_threshold"]
+            depth, density_threshold = 5, 0.1 if cs_method_args is None else cs_method_args["depth", "density_threshold"]
             with o3d.utility.VerbosityContextManager(o3d.utility.VerbosityLevel.Debug) as cm:
                 _pcd.normals = o3d.utility.Vector3dVector(np.zeros((1, 3)))  # invalidate existing normals
                 _pcd.estimate_normals()
@@ -115,7 +115,7 @@ def create_surf(
         _faces = np.asarray(mesh.triangles)
         _faces = np.concatenate((np.ones((_faces.shape[0], 1), dtype=np.int64) * 3, _faces), axis=1)
 
-        return pv.PolyData(_vertices, _faces.ravel())
+        return pv.PolyData(_vertices, _faces.ravel()).extract_surface()
 
     else:
         raise ValueError("\n`method` value is wrong. Available `method` are: `basic` , `slide` ,`alpha_shape`, `ball_pivoting`, `poisson`.")

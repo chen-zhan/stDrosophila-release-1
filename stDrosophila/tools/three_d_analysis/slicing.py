@@ -5,10 +5,15 @@ import pyvista as pv
 from pyvista.core.pointset import PolyData, UnstructuredGrid
 from typing import Optional, Sequence, Union
 
+try:
+    from typing import Literal
+except ImportError:
+    from typing_extensions import Literal
+
 
 def three_d_slicing(
     mesh: UnstructuredGrid,
-    scalar: str = "groups",
+    scalar: Literal["groups", "genes"] = "groups",
     axis: Union[str, int] = "x",
     n_slices: Union[str, int] = 10,
     center: Optional[Sequence[float]] = None,

@@ -8,10 +8,15 @@ import pyvista as pv
 
 from typing import Optional, Sequence, Union
 
+try:
+    from typing import Literal
+except ImportError:
+    from typing_extensions import Literal
+
 
 def easy_three_d_plot(
     mesh: Optional[pv.DataSet] = None,
-    scalar: str = "groups",
+    scalar: Literal["groups", "genes"] = "groups",
     outline: bool = False,
     ambient: float = 0.3,
     opacity: float = 0.5,
@@ -23,7 +28,10 @@ def easy_three_d_plot(
     off_screen: bool = False,
     window_size: Optional[list] = None,
     cpos: Union[str, tuple, list] = "iso",
-    legend_loc: str = "lower right",
+    legend_loc: Literal["upper right", "upper left",
+                        "lower left", "lower right",
+                        "center left", "lower center",
+                        "upper center", "center"] = "upper right",
     legend_size: Optional[Sequence] = None,
     view_up: Optional[list] = None,
     framerate: int = 15,
