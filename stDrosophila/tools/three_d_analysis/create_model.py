@@ -1,4 +1,3 @@
-
 import matplotlib as mpl
 import numpy as np
 import open3d as o3d
@@ -23,7 +22,7 @@ def create_points(
     adata: AnnData,
     coordsby: str = "spatial",
     ptype: Literal["polydata", "unstructured"] = "polydata",
-    coodtype: type = np.float64
+    coodtype: type = np.float64,
 ) -> PolyData or UnstructuredGrid:
     """
     Create a point cloud based on 3D coordinate information.
@@ -47,13 +46,17 @@ def create_points(
     elif ptype == "unstructured":
         return pv.PolyData(bucket_xyz).cast_to_unstructured_grid()
     else:
-        raise ValueError("\n`ptype` value is wrong..The parameter `ptype` must be `polydata` or `unstructured`.\n")
+        raise ValueError(
+            "\n`ptype` value is wrong..The parameter `ptype` must be `polydata` or `unstructured`.\n"
+        )
 
 
 def create_surf(
     pcd: PolyData,
-    cs_method: Literal["basic", "slide", "alpha_shape", "ball_pivoting", "poisson"] = "basic",
-    cs_method_args: dict = None
+    cs_method: Literal[
+        "basic", "slide", "alpha_shape", "ball_pivoting", "poisson"
+    ] = "basic",
+    cs_method_args: dict = None,
 ) -> PolyData:
     """
     Surface reconstruction from 3D point cloud.
@@ -76,7 +79,7 @@ def create_surf(
         z_data = pd.Series(pcd.points[:, 2])
         layers = np.unique(z_data.tolist())
         n_layer_groups = len(layers) - n_slide + 1
-        layer_groups = [layers[i: i + n_slide] for i in range(n_layer_groups)]
+        layer_groups = [layers[i : i + n_slide] for i in range(n_layer_groups)]
 
         points = np.empty(shape=[0, 3])
         for layer_group in layer_groups:
@@ -95,39 +98,69 @@ def create_surf(
 
         if cs_method == "alpha_shape":
             alpha = 3 if cs_method_args is None else cs_method_args["alpha"]
-            mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_alpha_shape(_pcd, alpha)
+            mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_alpha_shape(
+                _pcd, alpha
+            )
 
         elif cs_method == "ball_pivoting":
-            radii = [10, 10, 10, 10] if cs_method_args is None else cs_method_args["radii"]
-            _pcd.normals = o3d.utility.Vector3dVector(np.zeros((1, 3)))  # invalidate existing normals
+            radii = (
+                [10, 10, 10, 10] if cs_method_args is None else cs_method_args["radii"]
+            )
+            _pcd.normals = o3d.utility.Vector3dVector(
+                np.zeros((1, 3))
+            )  # invalidate existing normals
             _pcd.estimate_normals()
-            mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_ball_pivoting(_pcd, o3d.utility.DoubleVector(radii))
+            mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_ball_pivoting(
+                _pcd, o3d.utility.DoubleVector(radii)
+            )
 
         else:
-            depth, density_threshold = 5, 0.1 if cs_method_args is None else cs_method_args["depth", "density_threshold"]
-            with o3d.utility.VerbosityContextManager(o3d.utility.VerbosityLevel.Debug) as cm:
-                _pcd.normals = o3d.utility.Vector3dVector(np.zeros((1, 3)))  # invalidate existing normals
+            depth, density_threshold = (
+                5,
+                0.1
+                if cs_method_args is None
+                else cs_method_args["depth", "density_threshold"],
+            )
+            with o3d.utility.VerbosityContextManager(
+                o3d.utility.VerbosityLevel.Debug
+            ) as cm:
+                _pcd.normals = o3d.utility.Vector3dVector(
+                    np.zeros((1, 3))
+                )  # invalidate existing normals
                 _pcd.estimate_normals()
-                mesh, densities = o3d.geometry.TriangleMesh.create_from_point_cloud_poisson(_pcd, depth=depth)
-            mesh.remove_vertices_by_mask(np.asarray(densities) < np.quantile(densities, density_threshold))
+                (
+                    mesh,
+                    densities,
+                ) = o3d.geometry.TriangleMesh.create_from_point_cloud_poisson(
+                    _pcd, depth=depth
+                )
+            mesh.remove_vertices_by_mask(
+                np.asarray(densities) < np.quantile(densities, density_threshold)
+            )
 
         _vertices = np.asarray(mesh.vertices)
         _faces = np.asarray(mesh.triangles)
-        _faces = np.concatenate((np.ones((_faces.shape[0], 1), dtype=np.int64) * 3, _faces), axis=1)
+        _faces = np.concatenate(
+            (np.ones((_faces.shape[0], 1), dtype=np.int64) * 3, _faces), axis=1
+        )
 
         return pv.PolyData(_vertices, _faces.ravel()).extract_surface()
 
     else:
-        raise ValueError("\n`method` value is wrong. Available `method` are: `basic` , `slide` ,`alpha_shape`, `ball_pivoting`, `poisson`.")
+        raise ValueError(
+            "\n`method` value is wrong. Available `method` are: `basic` , `slide` ,`alpha_shape`, `ball_pivoting`, `poisson`."
+        )
 
 
 def smoothing_mesh(
     adata: AnnData,
     coordsby: str = "spatial",
-    cs_method: Literal["basic", "slide", "alpha_shape", "ball_pivoting", "poisson"] = "basic",
+    cs_method: Literal[
+        "basic", "slide", "alpha_shape", "ball_pivoting", "poisson"
+    ] = "basic",
     cs_method_args: dict = None,
     n_surf: int = 10000,
-    coodtype: type = np.float64
+    coodtype: type = np.float64,
 ) -> Tuple[AnnData, PolyData]:
     """
     Takes a uniformly meshed surface using voronoi clustering and
@@ -146,7 +179,9 @@ def smoothing_mesh(
         uniform_surf: A uniformly meshed surface.
     """
 
-    points = create_points(adata=adata, coordsby=coordsby, ptype="polydata", coodtype=coodtype)
+    points = create_points(
+        adata=adata, coordsby=coordsby, ptype="polydata", coodtype=coodtype
+    )
     points.point_data["index"] = adata.obs_names.to_numpy()
 
     # takes a surface mesh and returns a uniformly meshed surface using voronoi clustering.
@@ -239,7 +274,9 @@ def build_three_d_model(
     mask_alpha: float = 0,
     surf_color: str = "gainsboro",
     surf_alpha: float = 0.5,
-    cs_method: Literal["basic", "slide", "alpha_shape", "ball_pivoting", "poisson"] = "basic",
+    cs_method: Literal[
+        "basic", "slide", "alpha_shape", "ball_pivoting", "poisson"
+    ] = "basic",
     cs_method_args: dict = None,
     smoothing: bool = True,
     n_surf: int = 10000,
@@ -284,8 +321,14 @@ def build_three_d_model(
 
     # takes a uniformly meshed surface and clip the original mesh using the reconstructed surface if smoothing is True.
     _adata, uniform_surf = (
-        smoothing_mesh(adata=adata, coordsby=coordsby, cs_method=cs_method,
-                       cs_method_args=cs_method_args, n_surf=n_surf, coodtype=coodtype)
+        smoothing_mesh(
+            adata=adata,
+            coordsby=coordsby,
+            cs_method=cs_method,
+            cs_method_args=cs_method_args,
+            n_surf=n_surf,
+            coodtype=coodtype,
+        )
         if smoothing
         else (adata, None)
     )
@@ -322,7 +365,9 @@ def build_three_d_model(
     )
 
     # Create a point cloud(Unstructured) and its surface.
-    points = create_points(adata=_adata, coordsby=coordsby, ptype="unstructured", coodtype=coodtype)
+    points = create_points(
+        adata=_adata, coordsby=coordsby, ptype="unstructured", coodtype=coodtype
+    )
     surface = (
         create_surf(pcd=points, cs_method=cs_method, cs_method_args=cs_method_args)
         if uniform_surf is None
