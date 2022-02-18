@@ -10,7 +10,7 @@ import seaborn as sns
 from anndata import AnnData
 from pandas.core.frame import DataFrame
 from pyvista.core.pointset import PolyData, UnstructuredGrid
-from typing import Optional, Tuple, Union
+from typing import Optional, Tuple, Union, List
 
 try:
     from typing import Literal
@@ -19,10 +19,10 @@ except ImportError:
 
 
 def create_points(
-    adata: AnnData,
-    coordsby: str = "spatial",
-    ptype: Literal["polydata", "unstructured"] = "polydata",
-    coodtype: type = np.float64,
+        adata: AnnData,
+        coordsby: str = "spatial",
+        ptype: Literal["polydata", "unstructured"] = "polydata",
+        coodtype: type = np.float64,
 ) -> PolyData or UnstructuredGrid:
     """
     Create a point cloud based on 3D coordinate information.
@@ -52,11 +52,11 @@ def create_points(
 
 
 def create_surf(
-    pcd: PolyData,
-    cs_method: Literal[
-        "basic", "slide", "alpha_shape", "ball_pivoting", "poisson"
-    ] = "basic",
-    cs_method_args: dict = None,
+        pcd: PolyData,
+        cs_method: Literal[
+            "basic", "slide", "alpha_shape", "ball_pivoting", "poisson"
+        ] = "basic",
+        cs_method_args: dict = None,
 ) -> PolyData:
     """
     Surface reconstruction from 3D point cloud.
@@ -70,16 +70,21 @@ def create_surf(
         A surface mesh.
     """
 
+    _cs_method_args = {"n_slide": 3, "al_alpha": 10, "ba_radii": [1, 1, 1, 1],
+                       "po_depth": 5, "po_threshold": 0.1}
+    if cs_method_args is not None:
+        _cs_method_args.update(cs_method_args)
+
     if cs_method == "basic":
         return pcd.delaunay_3d().extract_surface()
 
     elif cs_method == "slide":
-        n_slide = 3 if cs_method_args is None else cs_method_args["n_slide"]
+        n_slide = _cs_method_args["n_slide"]
 
         z_data = pd.Series(pcd.points[:, 2])
         layers = np.unique(z_data.tolist())
         n_layer_groups = len(layers) - n_slide + 1
-        layer_groups = [layers[i : i + n_slide] for i in range(n_layer_groups)]
+        layer_groups = [layers[i: i + n_slide] for i in range(n_layer_groups)]
 
         points = np.empty(shape=[0, 3])
         for layer_group in layer_groups:
@@ -97,37 +102,34 @@ def create_surf(
         _pcd.points = o3d.utility.Vector3dVector(pcd.points)
 
         if cs_method == "alpha_shape":
-            alpha = 3 if cs_method_args is None else cs_method_args["alpha"]
+            alpha = _cs_method_args["al_alpha"]
             mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_alpha_shape(
                 _pcd, alpha
             )
 
         elif cs_method == "ball_pivoting":
-            radii = (
-                [10, 10, 10, 10] if cs_method_args is None else cs_method_args["radii"]
-            )
+            radii = _cs_method_args["ba_radii"]
+
             _pcd.normals = o3d.utility.Vector3dVector(
                 np.zeros((1, 3))
             )  # invalidate existing normals
             _pcd.estimate_normals()
+
             mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_ball_pivoting(
                 _pcd, o3d.utility.DoubleVector(radii)
             )
 
         else:
-            depth, density_threshold = (
-                5,
-                0.1
-                if cs_method_args is None
-                else cs_method_args["depth", "density_threshold"],
-            )
+            depth, density_threshold = _cs_method_args["po_depth"], _cs_method_args["po_threshold"]
+
+            _pcd.normals = o3d.utility.Vector3dVector(
+                np.zeros((1, 3))
+            )  # invalidate existing normals
+            _pcd.estimate_normals()
+
             with o3d.utility.VerbosityContextManager(
-                o3d.utility.VerbosityLevel.Debug
+                    o3d.utility.VerbosityLevel.Debug
             ) as cm:
-                _pcd.normals = o3d.utility.Vector3dVector(
-                    np.zeros((1, 3))
-                )  # invalidate existing normals
-                _pcd.estimate_normals()
                 (
                     mesh,
                     densities,
@@ -153,14 +155,14 @@ def create_surf(
 
 
 def smoothing_mesh(
-    adata: AnnData,
-    coordsby: str = "spatial",
-    cs_method: Literal[
-        "basic", "slide", "alpha_shape", "ball_pivoting", "poisson"
-    ] = "basic",
-    cs_method_args: dict = None,
-    n_surf: int = 10000,
-    coodtype: type = np.float64,
+        adata: AnnData,
+        coordsby: str = "spatial",
+        cs_method: Literal[
+            "basic", "slide", "alpha_shape", "ball_pivoting", "poisson"
+        ] = "basic",
+        cs_method_args: dict = None,
+        n_surf: int = 10000,
+        coodtype: type = np.float64,
 ) -> Tuple[AnnData, PolyData]:
     """
     Takes a uniformly meshed surface using voronoi clustering and
@@ -208,11 +210,11 @@ def smoothing_mesh(
 
 
 def three_d_color(
-    series,
-    colormap: Union[str, list, dict] = None,
-    alphamap: Union[float, list, dict] = None,
-    mask_color: Optional[str] = None,
-    mask_alpha: Optional[float] = None,
+        series,
+        colormap: Union[str, list, dict] = None,
+        alphamap: Union[float, list, dict] = None,
+        mask_color: Optional[str] = None,
+        mask_alpha: Optional[float] = None,
 ) -> np.ndarray:
     """
     Set the color of groups or gene expression.
@@ -261,31 +263,31 @@ def three_d_color(
 
 
 def build_three_d_model(
-    adata: AnnData,
-    coordsby: str = "spatial",
-    groupby: Optional[str] = None,
-    group_show: Union[str, list] = "all",
-    group_cmap: Union[str, list, dict] = "rainbow",
-    group_amap: Union[float, list, dict] = 1.0,
-    gene_show: Union[str, list] = "all",
-    gene_cmap: str = "hot_r",
-    gene_amap: float = 1.0,
-    mask_color: str = "gainsboro",
-    mask_alpha: float = 0,
-    surf_color: str = "gainsboro",
-    surf_alpha: float = 0.5,
-    cs_method: Literal[
-        "basic", "slide", "alpha_shape", "ball_pivoting", "poisson"
-    ] = "basic",
-    cs_method_args: dict = None,
-    smoothing: bool = True,
-    n_surf: int = 10000,
-    voxelize: bool = True,
-    voxel_size: Optional[list] = None,
-    voxel_smooth: Optional[int] = 200,
-    coodtype: type = np.float64,
-    expdtype: type = np.float64,
-) -> UnstructuredGrid:
+        adata: AnnData,
+        coordsby: str = "spatial",
+        groupby: Optional[str] = None,
+        group_show: Union[str, list] = "all",
+        group_cmap: Union[str, list, dict] = "rainbow",
+        group_amap: Union[float, list, dict] = 1.0,
+        gene_show: Union[str, list] = "all",
+        gene_cmap: str = "hot_r",
+        gene_amap: float = 1.0,
+        mask_color: str = "gainsboro",
+        mask_alpha: float = 0,
+        surf_color: str = "gainsboro",
+        surf_alpha: float = 0.5,
+        cs_method: Literal[
+            "basic", "slide", "alpha_shape", "ball_pivoting", "poisson"
+        ] = "basic",
+        cs_method_args: dict = None,
+        smoothing: bool = True,
+        n_surf: int = 10000,
+        voxelize: bool = True,
+        voxel_size: Optional[list] = None,
+        voxel_smooth: Optional[int] = 200,
+        coodtype: type = np.float64,
+        expdtype: type = np.float64,
+) -> Tuple[UnstructuredGrid, UnstructuredGrid]:
     """
     Reconstruct a voxelized 3D model.
     Args:
@@ -373,6 +375,7 @@ def build_three_d_model(
         if uniform_surf is None
         else uniform_surf
     )
+    surface = surface.cast_to_unstructured_grid()
 
     # Voxelize the cloud and the surface
     if voxelize:
@@ -416,7 +419,16 @@ def build_three_d_model(
         [mpl.colors.to_rgba(surf_color, alpha=surf_alpha)] * surface.n_cells
     ).astype(np.float64)
 
-    # Merge points and surface into a single mesh.
-    mesh = surface.merge(points)
+    return surface, points
 
-    return mesh
+
+def merge_model(
+    meshes: Union[List[PolyData or UnstructuredGrid], Tuple[PolyData or UnstructuredGrid]],
+) -> PolyData or UnstructuredGrid:
+    """Merge all meshes in the `meshes` list. The format of all meshes must be the same."""
+
+    merged_mesh = meshes[0]
+    for mesh in meshes[1:]:
+        merged_mesh.merge(mesh, inplace=True)
+
+    return merged_mesh
