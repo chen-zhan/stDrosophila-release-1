@@ -1,4 +1,3 @@
-
 import matplotlib as mpl
 import numpy as np
 import open3d as o3d
@@ -25,7 +24,9 @@ def mesh_type(
 ) -> PolyData or UnstructuredGrid:
     """Get a new representation of this mesh as a new type."""
     if mtype == "polydata":
-        return mesh if isinstance(mesh, PolyData) else pv.PolyData(mesh.points, mesh.cells)
+        return (
+            mesh if isinstance(mesh, PolyData) else pv.PolyData(mesh.points, mesh.cells)
+        )
 
     elif mtype == "unstructured":
         return mesh.cast_to_unstructured_grid() if isinstance(mesh, PolyData) else mesh
@@ -348,31 +349,48 @@ def construct_three_d_mesh(
         coodtype: Data type of 3D coordinate information.
         expdtype: Data type of gene expression.
     Returns:
-        mesh: Reconstructed 3D structure, which contains the following properties:
-            groups: `mesh['groups']`, the mask and the groups used for display.
-            genes_exp: `mesh['genes']`, the gene expression.
-            groups_rgba: `mesh['groups_rgba']`, the rgba colors for plotting groups and mask.
-            genes_rgba: `mesh['genes_rgba']`, the rgba colors for plotting genes and mask.
+        new_pcd: Reconstructed 3D point cloud, which contains the following properties:
+            groups: `new_pcd['groups']`, the mask and the groups used for display.
+            genes_exp: `new_pcd['genes']`, the gene expression.
+            groups_rgba: `new_pcd['groups_rgba']`, the rgba colors for plotting groups and mask.
+            genes_rgba: `new_pcd['genes_rgba']`, the rgba colors for plotting genes and mask.
+        volume: Reconstructed volumetric mesh, which contains the following properties:
+            groups: `volume['groups']`, the mask and the groups used for display.
+            genes_exp: `volume['genes']`, the gene expression.
+            groups_rgba: `volume['groups_rgba']`, the rgba colors for plotting groups and mask.
+            genes_rgba: `volume['genes_rgba']`, the rgba colors for plotting genes and mask.
     """
 
     # Reconstruct a point cloud and a volumetric mesh.
-    raw_pcd = construct_pcd(adata=adata, coordsby=coordsby, mtype="polydata", coodtype=coodtype)
+    raw_pcd = construct_pcd(
+        adata=adata, coordsby=coordsby, mtype="polydata", coodtype=coodtype
+    )
     raw_pcd.point_data["index"] = adata.obs_names.to_numpy()
-    surface = construct_surface(pcd=raw_pcd, cs_method=cs_method, cs_method_args=cs_method_args,
-                                surface_smoothness=surf_smoothness, n_surf=n_surf, mtype="polydata")
+    surface = construct_surface(
+        pcd=raw_pcd,
+        cs_method=cs_method,
+        cs_method_args=cs_method_args,
+        surface_smoothness=surf_smoothness,
+        n_surf=n_surf,
+        mtype="polydata",
+    )
     volume = construct_volume(mesh=surface, volume_smoothness=vol_smoothness)
 
     # Clip the original pcd using the reconstructed surface and reconstruct new point cloud.
     clipped_pcd = raw_pcd.clip_surface(surface)
     clipped_adata = adata[clipped_pcd.point_data["index"], :]
-    new_pcd = construct_pcd(adata=clipped_adata, coordsby=coordsby, mtype="polydata", coodtype=coodtype)
+    new_pcd = construct_pcd(
+        adata=clipped_adata, coordsby=coordsby, mtype="polydata", coodtype=coodtype
+    )
     if pcd_voxelize:
         new_pcd = voxelize_pcd(pcd=new_pcd, voxel_size=pcd_voxel_size)
 
     # Filter group info.
     if groupby is None:
         n_points = clipped_adata.obs.shape[0]
-        groups = pd.Series(["same"] * n_points, index=clipped_adata.obs.index, dtype=str)
+        groups = pd.Series(
+            ["same"] * n_points, index=clipped_adata.obs.index, dtype=str
+        )
     else:
         if isinstance(group_show, str) and group_show is "all":
             groups = clipped_adata.obs[groupby]
