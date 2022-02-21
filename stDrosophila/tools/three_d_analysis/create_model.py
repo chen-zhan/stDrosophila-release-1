@@ -452,7 +452,7 @@ def construct_three_d_mesh(
     return new_pcd, volume
 
 
-def merge_model(
+def merge_mesh(
     meshes: Union[
         List[PolyData or UnstructuredGrid], Tuple[PolyData or UnstructuredGrid]
     ],
