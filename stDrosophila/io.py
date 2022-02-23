@@ -30,6 +30,7 @@ def read_lasso(path: str) -> pd.DataFrame:
     )
 
     lasso_data["geneID"] = lasso_data.geneID.astype(str).str.strip('"')
+    lasso_data["geneID"] = lasso_data["geneID"].astype("category")
 
     return lasso_data
 
