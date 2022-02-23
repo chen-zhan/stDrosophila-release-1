@@ -27,10 +27,8 @@ def mesh_type(
         return (
             mesh if isinstance(mesh, PolyData) else pv.PolyData(mesh.points, mesh.cells)
         )
-
     elif mtype == "unstructured":
         return mesh.cast_to_unstructured_grid() if isinstance(mesh, PolyData) else mesh
-
     else:
         raise ValueError(
             "\n`mtype` value is wrong."
@@ -222,6 +220,20 @@ def construct_surface(
     return mesh_type(mesh=uniform_surf, mtype=mtype)
 
 
+def clip_pcd(
+    adata: AnnData,
+    pcd: PolyData,
+    surface: Union[PolyData or UnstructuredGrid]
+) -> Tuple[PolyData, AnnData]:
+    """Clip the original pcd using the reconstructed surface and reconstruct new point cloud.
+    """
+    pcd.point_data["index"] = adata.obs_names.to_numpy()
+    clipped_pcd = pcd.clip_surface(surface)
+    clipped_adata = adata[clipped_pcd.point_data["index"], :]
+
+    return clipped_pcd, clipped_adata
+
+
 def construct_volume(
     mesh: Union[PolyData, UnstructuredGrid],
     volume_smoothness: Optional[int] = 200,
@@ -299,27 +311,19 @@ def construct_three_d_mesh(
     adata: AnnData,
     coordsby: str = "spatial",
     groupby: Optional[str] = None,
-    group_show: Union[str, list] = "all",
-    group_cmap: Union[str, list, dict] = "rainbow",
-    group_amap: Union[float, list, dict] = 1.0,
-    gene_show: Union[str, list] = "all",
-    gene_cmap: str = "hot_r",
-    gene_amap: float = 1.0,
-    mask_color: str = "gainsboro",
-    mask_alpha: float = 0,
+    mesh_style: Literal["pcd", "surf", "volume"] = "volume",
+    colormap: Union[str, list, dict] = "rainbow",
+    alphamap: Union[float, list, dict] = 1.0,
+    mask: Union[str, int, float, list] = None,
     cs_method: Literal[
         "basic", "slide", "alpha_shape", "ball_pivoting", "poisson"
     ] = "basic",
     cs_method_args: dict = None,
     surf_smoothness: int = 100,
     n_surf: int = 10000,
-    vol_color: str = "gainsboro",
-    vol_alpha: float = 0.5,
     vol_smoothness: Optional[int] = 200,
     pcd_voxelize: bool = True,
     pcd_voxel_size: Optional[list] = None,
-    coodtype: type = np.float64,
-    expdtype: type = np.float64,
 ) -> Tuple[UnstructuredGrid, UnstructuredGrid]:
     """
     Reconstruct a voxelized 3D model.
@@ -327,16 +331,6 @@ def construct_three_d_mesh(
         adata: AnnData object.
         coordsby: The key from adata.obsm whose value will be used to reconstruct the 3D structure.
         groupby: The key of the observations grouping to consider.
-        group_show: Subset of groups used for display, e.g. [`'g1'`, `'g2'`, `'g3'`]. The default group_show is `'all'`, for all groups.
-        group_cmap: Colors to use for plotting groups. The default group_cmap is `'rainbow'`.
-        group_amap: The opacity of the colors to use for plotting groups. The default group_amap is `1.0`.
-        gene_show: Subset of genes used for display, e.g. [`'g1'`, `'g2'`, `'g3'`]. The default gene_show is `'all'`, for all groups.
-        gene_cmap: Colors to use for plotting genes. The default gene_cmap is `'hot_r'`.
-        gene_amap: The opacity of the colors to use for plotting genes. The default gene_amap is `1.0`.
-        mask_color: Color to use for plotting mask. The default mask_color is `'gainsboro'`.
-        mask_alpha: The opacity of the color to use for plotting mask. The default mask_alpha is `0.0`.
-        vol_color: Color to use for plotting surface. The default mask_color is `'gainsboro'`.
-        vol_alpha: The opacity of the color to use for plotting surface. The default mask_alpha is `0.5`.
         vol_smoothness: The smoothness of the volumetric mesh.
         cs_method: Create surface methods.
         cs_method_args: Parameters for various surface reconstruction methods.
@@ -346,110 +340,52 @@ def construct_three_d_mesh(
                 Only valid when smoothing is True.
         pcd_voxelize: Voxelize the reconstructed 3D structure.
         pcd_voxel_size: The size of the voxelized points. A list of three elements.
-        coodtype: Data type of 3D coordinate information.
-        expdtype: Data type of gene expression.
     Returns:
-        new_pcd: Reconstructed 3D point cloud, which contains the following properties:
+        mesh: Reconstructed 3D point cloud, which contains the following properties:
             groups: `new_pcd['groups']`, the mask and the groups used for display.
             genes_exp: `new_pcd['genes']`, the gene expression.
-            groups_rgba: `new_pcd['groups_rgba']`, the rgba colors for plotting groups and mask.
-            genes_rgba: `new_pcd['genes_rgba']`, the rgba colors for plotting genes and mask.
-        volume: Reconstructed volumetric mesh, which contains the following properties:
-            groups: `volume['groups']`, the mask and the groups used for display.
-            genes_exp: `volume['genes']`, the gene expression.
-            groups_rgba: `volume['groups_rgba']`, the rgba colors for plotting groups and mask.
-            genes_rgba: `volume['genes_rgba']`, the rgba colors for plotting genes and mask.
     """
 
-    # Reconstruct a point cloud and a volumetric mesh.
-    raw_pcd = construct_pcd(
-        adata=adata, coordsby=coordsby, mtype="polydata", coodtype=coodtype
-    )
-    raw_pcd.point_data["index"] = adata.obs_names.to_numpy()
-    surface = construct_surface(
-        pcd=raw_pcd,
-        cs_method=cs_method,
-        cs_method_args=cs_method_args,
-        surface_smoothness=surf_smoothness,
-        n_surf=n_surf,
-        mtype="polydata",
-    )
-    volume = construct_volume(mesh=surface, volume_smoothness=vol_smoothness)
+    # Reconstruct a point cloud, surface or volumetric mesh.
+    pcd = construct_pcd(adata=adata, coordsby=coordsby, mtype="polydata", coodtype=np.float64)
 
-    # Clip the original pcd using the reconstructed surface and reconstruct new point cloud.
-    clipped_pcd = raw_pcd.clip_surface(surface)
-    clipped_adata = adata[clipped_pcd.point_data["index"], :]
-    new_pcd = construct_pcd(
-        adata=clipped_adata, coordsby=coordsby, mtype="polydata", coodtype=coodtype
-    )
-    if pcd_voxelize:
-        new_pcd = voxelize_pcd(pcd=new_pcd, voxel_size=pcd_voxel_size)
-
-    # Filter group info.
-    if groupby is None:
-        n_points = clipped_adata.obs.shape[0]
-        groups = pd.Series(
-            ["same"] * n_points, index=clipped_adata.obs.index, dtype=str
-        )
+    if mesh_style == "pcd":
+        pcd = voxelize_pcd(pcd=pcd, voxel_size=pcd_voxel_size) if pcd_voxelize else pcd
+        mesh = pcd
     else:
-        if isinstance(group_show, str) and group_show is "all":
-            groups = clipped_adata.obs[groupby]
-        elif isinstance(group_show, str) and group_show is not "all":
-            groups = clipped_adata.obs[groupby].map(
-                lambda x: str(x) if x == group_show else "mask"
-            )
-        elif isinstance(group_show, list) or isinstance(group_show, tuple):
-            groups = clipped_adata.obs[groupby].map(
-                lambda x: str(x) if x in group_show else "mask"
-            )
-        else:
-            raise ValueError("\n`group_show` value is wrong.\n")
+        surface = construct_surface(
+            pcd=pcd,
+            cs_method=cs_method,
+            cs_method_args=cs_method_args,
+            surface_smoothness=surf_smoothness,
+            n_surf=n_surf,
+            mtype="polydata",
+        )
+        pcd, adata = clip_pcd(adata=adata, pcd=pcd, surface=surface)
+        mesh = construct_volume(mesh=surface, volume_smoothness=vol_smoothness) if mesh_style == "volume" else surface
 
-    # Filter gene expression info.
-    genes_exp = (
-        clipped_adata.X.sum(axis=1)
-        if gene_show == "all"
-        else clipped_adata[:, gene_show].X.sum(axis=1)
-    )
-    genes_exp = pd.DataFrame(genes_exp, index=groups.index).astype(expdtype)
-    genes_data = pd.concat([groups, genes_exp], axis=1)
-    genes_data.columns = ["groups", "genes_exp"]
-    new_genes_exp = genes_data[["groups", "genes_exp"]].apply(
-        lambda x: "mask" if x["groups"] is "mask" else round(x["genes_exp"], 2), axis=1
-    )
-
-    # Add some properties of the 3D model
-    new_pcd.cell_data["groups"] = groups.astype(str).values
-    new_pcd.cell_data["groups_rgba"] = three_d_color(
+    mask_list = mask if isinstance(mask, list) else [mask]
+    if groupby in adata.obs.columns:
+        groups = adata.obs[groupby].map(lambda x: x if x in mask_list else "mask").values
+    elif groupby in adata.var.index:
+        groups = adata[:, groupby].X
+    elif groupby is None:
+        groups = np.array(["same"] * adata.obs.shape[0])
+    else:
+        raise ValueError(
+            "\n`groupby` value is wrong."
+            "\n`groupby` should be one of adata.obs.columns, or one of adata.var.index\n"
+        )
+    mesh.point_data["groups"] = groups
+    mesh.point_data["groups_rgba"] = three_d_color(
         series=groups,
-        colormap=group_cmap,
-        alphamap=group_amap,
-        mask_color=mask_color,
-        mask_alpha=mask_alpha,
-    ).astype(np.float64)
+        colormap=colormap,
+        alphamap=alphamap,
+        mask_color="gainsboro",
+        mask_alpha=0,
+        ).astype(np.float64)
 
-    new_pcd.cell_data["genes"] = (
-        new_genes_exp.map(lambda x: 0 if x == "mask" else x).astype(expdtype).values
-    )
-    new_pcd.cell_data["genes_rgba"] = three_d_color(
-        series=new_genes_exp,
-        colormap=gene_cmap,
-        alphamap=gene_amap,
-        mask_color=mask_color,
-        mask_alpha=mask_alpha,
-    ).astype(np.float64)
-
-    volume.cell_data["groups"] = np.array(["mask"] * volume.n_cells).astype(str)
-    volume.cell_data["groups_rgba"] = np.array(
-        [mpl.colors.to_rgba(vol_color, alpha=vol_alpha)] * volume.n_cells
-    ).astype(np.float64)
-
-    volume.cell_data["genes"] = np.array([0] * volume.n_cells).astype(expdtype)
-    volume.cell_data["genes_rgba"] = np.array(
-        [mpl.colors.to_rgba(vol_color, alpha=vol_alpha)] * volume.n_cells
-    ).astype(np.float64)
-
-    return new_pcd, volume
+    return mesh
 
 
 def merge_mesh(
