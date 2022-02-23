@@ -51,11 +51,6 @@ def binxtobiny(binx_data, bin1_data, binx=None, biny=1, save=None):
         The size of bin after conversion.
     save: `str` (default: `None`)
         If save is not None, save is the path to save the lasso data.
-
-    Examples
-    --------
-    >> bin1_data = pd.read_csv(r"bin1_lasso.txt", sep="\t")
-    >> bin5_data = bin1tobinx(bin1_data, binx=5, save="bin5_lasso.gem.gz")
     """
 
     binx_coords = binx_data.loc[:, ["x", "y"]].drop_duplicates()
@@ -73,7 +68,3 @@ def binxtobiny(binx_data, bin1_data, binx=None, biny=1, save=None):
         if save is not None:
             bin1_need.to_csv(save, index=False, sep="\t")
         return bin1_need
-
-
-
-"/media/yao/Elements SE/BGI_Paper/mouse_brain/stereo/day3_brain_0110/1_Crop/crop_bin1"
