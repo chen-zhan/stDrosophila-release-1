@@ -1,5 +1,4 @@
 import anndata as ad
-import numpy as np
 import pandas as pd
 
 from sklearn.covariance import EllipticEnvelope
