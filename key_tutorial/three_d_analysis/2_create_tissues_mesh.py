@@ -2,6 +2,7 @@ import anndata as ad
 import numpy as np
 import stDrosophila as sd
 import warnings
+
 warnings.filterwarnings("ignore")
 
 # Example data
@@ -151,8 +152,10 @@ body_pcd, body_volume = sd.tl.construct_three_d_mesh(
     vol_smoothness=500,
 )
 
-complete_mesh = sd.tl.merge_mesh([sg_volume, trachea_volume, muscle_volume, fb_volume, cns_volume, body_volume])
-for cpo in ['xy', 'xz', 'yz', 'yx', 'zx', 'zy', 'iso']:
+complete_mesh = sd.tl.merge_mesh(
+    [sg_volume, trachea_volume, muscle_volume, fb_volume, cns_volume, body_volume]
+)
+for cpo in ["xy", "xz", "yz", "yx", "zx", "zy", "iso"]:
     sd.pl.easy_three_d_plot(
         mesh=complete_mesh,
         scalar="groups",

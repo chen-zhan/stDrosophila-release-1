@@ -25,9 +25,9 @@ def bin1tobinx(bin1_data, binx=None, save=None):
     bin1_data["y"] = (bin1_data["y"] / binx).astype(int) * binx
     binx_data = (
         bin1_data.groupby(["x", "y", "geneID"])["MIDCounts"]
-            .sum()
-            .to_frame("MIDCounts")
-            .reset_index()
+        .sum()
+        .to_frame("MIDCounts")
+        .reset_index()
     )
     binx_data = binx_data.reindex(columns=["geneID", "x", "y", "MIDCounts"])
     if save is not None:
@@ -54,7 +54,10 @@ def binxtobiny(binx_data, bin1_data, binx=None, biny=1, save=None):
     """
 
     binx_coords = binx_data.loc[:, ["x", "y"]].drop_duplicates()
-    binx_coords.index, binx_coords.columns = range(len(binx_coords.index)), ["binx_x", "binx_y"]
+    binx_coords.index, binx_coords.columns = range(len(binx_coords.index)), [
+        "binx_x",
+        "binx_y",
+    ]
 
     bin1_data["binx_x"] = (bin1_data["x"] / binx).astype(int) * binx
     bin1_data["binx_y"] = (bin1_data["y"] / binx).astype(int) * binx
@@ -68,4 +71,3 @@ def binxtobiny(binx_data, bin1_data, binx=None, biny=1, save=None):
         if save is not None:
             bin1_need.to_csv(save, index=False, sep="\t")
         return bin1_need
-
