@@ -102,8 +102,17 @@ def construct_surface(
 
     Args:
         pcd: A point cloud.
-        cs_method: Create surface methods.
-        cs_method_args: Parameters for various surface reconstruction methods.
+        cs_method: The methods of creating a surface mesh. Available cs_method are:
+                * `'basic'`
+                * `'slide'`
+                * `'alpha_shape'`
+                * `'ball_pivoting'`
+                * `'poisson'`
+        cs_method_args: Parameters for various surface reconstruction methods. Available Parameters are:
+                * `'slide'` method: {"n_slide": 3}
+                * `'alpha_shape'` method: {"al_alpha": 10}
+                * `'ball_pivoting'` method: {"ba_radii": [1, 1, 1, 1]}
+                * `'poisson'` method: {"po_depth": 5, "po_threshold": 0.1}
         surface_smoothness: Adjust surface point coordinates using Laplacian smoothing.
                             If smoothness==0, do not smooth the reconstructed surface.
         n_surf: The number of faces obtained using voronoi clustering. The larger the number, the smoother the surface.
@@ -258,7 +267,7 @@ def construct_volume(
 
 
 def three_d_color(
-    arr,
+    arr: np.ndarray,
     colormap: Union[str, list, dict] = None,
     alphamap: Union[float, list, dict] = None,
     mask_color: Optional[str] = None,
@@ -273,41 +282,41 @@ def three_d_color(
         mask_color: Colors to use for plotting mask information.
         mask_alpha: The opacity of the color to use for plotting mask information.
     Returns:
-        rgba: The rgba values mapped to groups or gene expression.
+        The rgba values mapped to groups or gene expression.
     """
 
-    color_types = np.unique(arr).tolist()
-    colordict = {}
+    cu_arr = np.unique(arr)
+    cu_arr = np.sort(cu_arr, axis=0)
+    cu_dict = {}
 
     # Set mask rgba.
-    if "mask" in color_types:
-        color_types.remove("mask")
-        colordict["mask"] = mpl.colors.to_rgba(mask_color, alpha=mask_alpha)
-    color_types.sort()
+    mask_ind = np.argwhere(cu_arr == "mask")
+    if not mask_ind:
+        cu_arr = np.delete(cu_arr, mask_ind[0])
+        cu_dict["mask"] = mpl.colors.to_rgba(mask_color, alpha=mask_alpha)
 
     # Set alpha.
     if isinstance(alphamap, float) or isinstance(alphamap, int):
-        alphamap = {t: alphamap for t in color_types}
+        alphamap = {t: alphamap for t in cu_arr}
     elif isinstance(alphamap, list):
-        alphamap = {t: alpha for t, alpha in zip(color_types, alphamap)}
+        alphamap = {t: alpha for t, alpha in zip(cu_arr, alphamap)}
 
     # Set rgb.
     if isinstance(colormap, str):
         colormap = [
             mpl.colors.to_hex(i, keep_alpha=False)
             for i in sns.color_palette(
-                palette=colormap, n_colors=len(color_types), as_cmap=False
+                palette=colormap, n_colors=len(cu_arr), as_cmap=False
             )
         ]
     if isinstance(colormap, list):
-        colormap = {t: color for t, color in zip(color_types, colormap)}
+        colormap = {t: color for t, color in zip(cu_arr, colormap)}
 
     # Set rgba.
-    for t in color_types:
-        colordict[t] = mpl.colors.to_rgba(colormap[t], alpha=alphamap[t])
-    rgba = np.array([colordict[g] for g in arr.tolist()])
+    for t in cu_arr:
+        cu_dict[t] = mpl.colors.to_rgba(colormap[t], alpha=alphamap[t])
 
-    return rgba
+    return np.array([cu_dict[g] for g in arr])
 
 
 def construct_three_d_mesh(
@@ -425,7 +434,7 @@ def construct_three_d_mesh(
     ).astype(np.float64)
 
     # surface mesh or volumetric mesh
-    if mesh is not None:
+    if not mesh:
         mesh.point_data[key_added] = np.array(["mask"] * mesh.n_points).astype(str)
         mesh.point_data[f"{key_added}_rgba"] = np.array(
             [mpl.colors.to_rgba(mesh_color, alpha=mesh_alpha)] * mesh.n_points

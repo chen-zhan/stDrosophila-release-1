@@ -1,7 +1,5 @@
 import warnings
 
-import pyvista as pv
-
 from pyvista.core.pointset import PolyData, UnstructuredGrid
 from typing import Optional, Sequence, Union
 
@@ -11,9 +9,9 @@ except ImportError:
     from typing_extensions import Literal
 
 
-def three_d_slicing(
-    mesh: UnstructuredGrid,
-    scalar: Literal["groups", "genes"] = "groups",
+def three_d_slice(
+    mesh: Union[PolyData, UnstructuredGrid],
+    key: str = "groups",
     axis: Union[str, int] = "x",
     n_slices: Union[str, int] = 10,
     center: Optional[Sequence[float]] = None,
@@ -23,9 +21,7 @@ def three_d_slicing(
     create three orthogonal slices through the dataset on the three cartesian planes.
     Args:
         mesh: Reconstructed 3D structure (voxelized object).
-        scalar: Types used to “color” the mesh. Available scalars are:
-                * `'groups'`
-                * `'genes'`
+        key: The key under which are the labels.
         axis: The axis to generate the slices along. Available axes are:
                 * `'x'` or `0`
                 * `'y'` or `1`
@@ -37,13 +33,13 @@ def three_d_slicing(
         Sliced dataset.
     """
 
-    if isinstance(mesh, pv.core.pointset.UnstructuredGrid) is False:
+    if isinstance(mesh, UnstructuredGrid) is False:
         warnings.warn(
-            "The model should be a pyvista.UnstructuredGrid (voxelized) object."
+            "The mesh should be a pyvista.UnstructuredGrid object."
         )
         mesh = mesh.cast_to_unstructured_grid()
 
-    mesh.set_active_scalars(f"{scalar}_rgba")
+    mesh.set_active_scalars(f"{key}_rgba")
 
     if n_slices is "orthogonal":
         # Create three orthogonal slices through the dataset on the three cartesian planes.
