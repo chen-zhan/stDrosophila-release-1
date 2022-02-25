@@ -10,7 +10,7 @@ import seaborn as sns
 
 from anndata import AnnData
 from pandas.core.frame import DataFrame
-from pyvista.core.pointset import PolyData, UnstructuredGrid
+from pyvista import PolyData, UnstructuredGrid
 from typing import Optional, Tuple, Union, List
 
 try:
@@ -49,7 +49,9 @@ def construct_pcd(
     Args:
         adata: AnnData object.
         coordsby: The key from adata.obsm whose value will be used to reconstruct the 3D structure.
-        mtype: The type of the point cloud. Available `mtype` are: `polydata` and `unstructured`.
+        mtype: The type of the reconstructed surface. Available `mtype` are:
+                * `'polydata'`
+                * `'unstructured'`
         coodtype: Data type of 3D coordinate information.
 
     Returns:
@@ -67,7 +69,7 @@ def construct_pcd(
 def voxelize_pcd(
     pcd: PolyData,
     voxel_size: Optional[list] = None,
-):
+) -> UnstructuredGrid:
     """
     Voxelize the point cloud.
 
@@ -116,7 +118,9 @@ def construct_surface(
         surface_smoothness: Adjust surface point coordinates using Laplacian smoothing.
                             If smoothness==0, do not smooth the reconstructed surface.
         n_surf: The number of faces obtained using voronoi clustering. The larger the number, the smoother the surface.
-        mtype: The type of the reconstructed surface. Available `mtype` are: `polydata` and `unstructured`.
+        mtype: The type of the reconstructed surface. Available `mtype` are:
+                * `'polydata'`
+                * `'unstructured'`
 
     Returns:
         A surface mesh.
@@ -236,11 +240,11 @@ def construct_surface(
 
 
 def clip_pcd(
-    adata: AnnData, pcd: PolyData, surface: Union[PolyData or UnstructuredGrid]
+    adata: AnnData, pcd: PolyData, surface: PolyData, invert: bool = True
 ) -> Tuple[PolyData, AnnData]:
     """Clip the original pcd using the reconstructed surface and reconstruct new point cloud."""
     pcd.point_data["index"] = adata.obs_names.to_numpy()
-    clipped_pcd = pcd.clip_surface(surface, invert=False)
+    clipped_pcd = pcd.clip_surface(surface, invert=invert)
     clipped_adata = adata[clipped_pcd.point_data["index"], :]
 
     return clipped_pcd, clipped_adata
@@ -249,7 +253,7 @@ def clip_pcd(
 def construct_volume(
     mesh: Union[PolyData, UnstructuredGrid],
     volume_smoothness: Optional[int] = 200,
-):
+) -> UnstructuredGrid:
     """Construct a volumetric mesh based on surface mesh.
 
     Args:
@@ -279,7 +283,7 @@ def three_d_color(
         arr: NumPy ndarray.
         colormap: Colors to use for plotting data.
         alphamap: The opacity of the color to use for plotting data.
-        mask_color: Colors to use for plotting mask information.
+        mask_color: Color to use for plotting mask information.
         mask_alpha: The opacity of the color to use for plotting mask information.
     Returns:
         The rgba values mapped to groups or gene expression.
@@ -291,7 +295,7 @@ def three_d_color(
 
     # Set mask rgba.
     mask_ind = np.argwhere(cu_arr == "mask")
-    if not mask_ind:
+    if len(mask_ind) != 0:
         cu_arr = np.delete(cu_arr, mask_ind[0])
         cu_dict["mask"] = mpl.colors.to_rgba(mask_color, alpha=mask_alpha)
 
@@ -325,13 +329,13 @@ def construct_three_d_mesh(
     groupby: Optional[str] = None,
     key_added: str = "groups",
     mask: Union[str, int, float, list] = None,
-    pcd_cmap: Union[str, list, dict] = "rainbow",
-    pcd_amap: Union[float, list, dict] = 1.0,
-    pcd_voxelize: bool = True,
-    pcd_voxel_size: Optional[list] = None,
-    mesh_style: Literal["surf", "volume"] = "volume",
+    mesh_style: Literal["pcd", "surf", "volume"] = "volume",
     mesh_color: Optional[str] = "gainsboro",
     mesh_alpha: Optional[float] = 1.0,
+    pcd_cmap: Union[str, list, dict] = "rainbow",
+    pcd_amap: Union[float, list, dict] = 1.0,
+    pcd_voxelize: bool = False,
+    pcd_voxel_size: Optional[list] = None,
     cs_method: Literal[
         "basic", "slide", "alpha_shape", "ball_pivoting", "poisson"
     ] = "basic",
@@ -348,11 +352,8 @@ def construct_three_d_mesh(
         groupby: The key of the observations grouping to consider.
         key_added: The key under which to add the labels.
         mask: The part that you don't want to be displayed.
-        pcd_cmap: Colors to use for plotting pcd. The default pcd_cmap is `'rainbow'`.
-        pcd_amap: The opacity of the colors to use for plotting pcd. The default pcd_amap is `1.0`.
-        pcd_voxelize: Voxelize the point cloud.
-        pcd_voxel_size: The size of the voxelized points. A list of three elements.
         mesh_style: The style of the reconstructed mesh. Available mesh_style are:
+                * `'pcd'`
                 * `'surface'`
                 * `'volume'`
         mesh_color: Color to use for plotting mesh. The default mesh_color is `'gainsboro'`.
@@ -363,6 +364,10 @@ def construct_three_d_mesh(
                 * `'alpha_shape'`
                 * `'ball_pivoting'`
                 * `'poisson'`
+        pcd_cmap: Colors to use for plotting pcd. The default pcd_cmap is `'rainbow'`.
+        pcd_amap: The opacity of the colors to use for plotting pcd. The default pcd_amap is `1.0`.
+        pcd_voxelize: Voxelize the point cloud.
+        pcd_voxel_size: The size of the voxelized points. A list of three elements.
         cs_method_args: Parameters for various surface reconstruction methods. Available Parameters are:
                 * `'slide'` method: {"n_slide": 3}
                 * `'alpha_shape'` method: {"al_alpha": 10}
@@ -388,7 +393,6 @@ def construct_three_d_mesh(
     )
 
     if mesh_style == "pcd":
-        pcd = voxelize_pcd(pcd=pcd, voxel_size=pcd_voxel_size) if pcd_voxelize else pcd
         surface = None
     else:
         surface = construct_surface(
@@ -399,7 +403,8 @@ def construct_three_d_mesh(
             n_surf=n_surf,
             mtype="polydata",
         )
-        pcd, adata = clip_pcd(adata=adata, pcd=pcd, surface=surface)
+        clip_invert = True if cs_method in ["basic", "slide"] else False
+        pcd, adata = clip_pcd(adata=adata, pcd=pcd, surface=surface, invert=clip_invert)
 
     mesh = (
         construct_volume(mesh=surface, volume_smoothness=vol_smoothness)
@@ -424,8 +429,13 @@ def construct_three_d_mesh(
         )
 
     # pcd
-    pcd.point_data[key_added] = groups
-    pcd.point_data[f"{key_added}_rgba"] = three_d_color(
+    pcd = (
+        voxelize_pcd(pcd=pcd, voxel_size=pcd_voxel_size)
+        if pcd_voxelize
+        else mesh_type(pcd, mtype="unstructured")
+    )
+    pcd.cell_data[key_added] = groups
+    pcd.cell_data[f"{key_added}_rgba"] = three_d_color(
         arr=groups,
         colormap=pcd_cmap,
         alphamap=pcd_amap,
@@ -434,10 +444,11 @@ def construct_three_d_mesh(
     ).astype(np.float64)
 
     # surface mesh or volumetric mesh
-    if not mesh:
-        mesh.point_data[key_added] = np.array(["mask"] * mesh.n_points).astype(str)
-        mesh.point_data[f"{key_added}_rgba"] = np.array(
-            [mpl.colors.to_rgba(mesh_color, alpha=mesh_alpha)] * mesh.n_points
+    if mesh is not None:
+        mesh = mesh_type(mesh, mtype="unstructured")
+        mesh.cell_data[key_added] = np.array(["mask"] * mesh.n_cells).astype(str)
+        mesh.cell_data[f"{key_added}_rgba"] = np.array(
+            [mpl.colors.to_rgba(mesh_color, alpha=mesh_alpha)] * mesh.n_cells
         ).astype(np.float64)
 
     return pcd, mesh
@@ -455,3 +466,24 @@ def merge_mesh(
         merged_mesh.merge(mesh, inplace=True)
 
     return merged_mesh
+
+
+def save_mesh(
+    mesh: Union[PolyData, UnstructuredGrid],
+    filename: str,
+    binary: bool = True,
+    texture: Union[str, np.ndarray] = None,
+):
+    """
+    Save the vtk object to file (only available when saving PLY files).
+    Args:
+        mesh: A reconstructed mesh.
+        filename: Filename of output file. Writer type is inferred from the extension of the filename.
+        binary: If True, write as binary. Otherwise, write as ASCII. Binary files write much faster than ASCII and have a smaller file size.
+        texture: Write a single texture array to file when using a PLY file.
+                 Texture array must be a 3 or 4 component array with the datatype np.uint8.
+                 Array may be a cell array or a point array, and may also be a string if the array already exists in the PolyData.
+                 If a string is provided, the texture array will be saved to disk as that name.
+                 If an array is provided, the texture array will be saved as 'RGBA'
+    """
+    mesh.save(filename=filename, binary=binary, texture=texture)

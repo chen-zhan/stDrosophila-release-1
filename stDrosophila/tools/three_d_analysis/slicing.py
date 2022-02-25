@@ -1,6 +1,6 @@
 import warnings
 
-from pyvista.core.pointset import PolyData, UnstructuredGrid
+from pyvista import PolyData, UnstructuredGrid
 from typing import Optional, Sequence, Union
 
 try:
@@ -20,7 +20,7 @@ def three_d_slice(
     Create many slices of the input dataset along a specified axis or
     create three orthogonal slices through the dataset on the three cartesian planes.
     Args:
-        mesh: Reconstructed 3D structure (voxelized object).
+        mesh: Reconstructed 3D mesh.
         key: The key under which are the labels.
         axis: The axis to generate the slices along. Available axes are:
                 * `'x'` or `0`
@@ -34,9 +34,7 @@ def three_d_slice(
     """
 
     if isinstance(mesh, UnstructuredGrid) is False:
-        warnings.warn(
-            "The mesh should be a pyvista.UnstructuredGrid object."
-        )
+        warnings.warn("The mesh should be a pyvista.UnstructuredGrid object.")
         mesh = mesh.cast_to_unstructured_grid()
 
     mesh.set_active_scalars(f"{key}_rgba")

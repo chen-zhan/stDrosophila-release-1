@@ -2,13 +2,11 @@ import numpy as np
 import pandas as pd
 import pyvista as pv
 
+from pyvista import PolyData, UnstructuredGrid
 from typing import Optional, Union
 
 
-def compute_volume(
-    mesh: Optional[pv.DataSet] = None,
-    group_show: Union[str, list] = "all",
-) -> float:
+def compute_volume(mesh: Union[PolyData, UnstructuredGrid]) -> float:
     """
     Calculate the volume of the reconstructed 3D structure.
     Args:
