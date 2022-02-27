@@ -2,6 +2,7 @@ import anndata as ad
 import numpy as np
 import stDrosophila as sd
 from pyvista import MultiBlock
+import vtk
 
 # Example data
 file = r"D:\BGIpy37_pytorch113\E16-18_a_SCT_anno.h5ad"
@@ -29,19 +30,54 @@ pcd, volume = sd.tl.construct_three_d_mesh(
     pcd_voxel_size=[0.5, 0.5, 0.5],
     cs_method="alpha_shape",
 )
-import pyvista as pv
 
-new_mesh = volume.slice_orthogonal()
-print(type(new_mesh))
-"""
-picked = sd.tl.three_d_split(mesh=pcd, key="groups")
+mesh = sd.tl.merge_mesh([pcd, volume])
+raw_mesh = mesh.copy()
 
 import pyvista as pv
+import pandas as pd
 
-# convert these meshes back to surface meshes (PolyData)
-separated_meshes = []
-for selected_mesh in picked:
-    separated_meshes.append(selected_mesh)
-    pv.plot(selected_mesh)
-pv.plot(separated_meshes)
-"""
+p = pv.Plotter()
+p.add_mesh(mesh, scalars=f"groups_rgba", rgba=True)
+picked_meshes, legend = [], []
+invert_meshes = []
+
+
+def split_mesh(original_mesh):
+    """Adds a new mesh to the plotter each time cells are picked, and
+    removes them from the original mesh"""
+
+    # if nothing selected
+    if not original_mesh.n_cells:
+        return
+
+    # remove the picked cells from main grid
+    ghost_cells = np.zeros(mesh.n_cells, np.uint8)
+    ghost_cells[original_mesh["orig_extract_id"]] = 1
+    mesh.cell_data[vtk.vtkDataSetAttributes.GhostArrayName()] = ghost_cells
+    mesh.RemoveGhostCells()
+
+    # add the selected mesh this to the main plotter
+    color = np.random.random(3)
+    legend.append(["picked mesh %d" % len(picked_meshes), color])
+    p.add_mesh(original_mesh, color=color)
+    p.add_legend(legend)
+
+    # track the picked meshes and label them
+    original_mesh["picked_index"] = np.ones(original_mesh.n_points) * len(picked_meshes)
+    picked_meshes.append(original_mesh)
+    invert_meshes.append(mesh)
+
+
+# enable cell picking with our custom callback
+p.enable_cell_picking(
+    mesh=mesh,
+    callback=split_mesh,
+    show=False,
+    font_size=12,
+    show_message="Press `r` to enable retangle based selection. Press `r` again to turn it off. ",
+)
+p.show()
+print(invert_meshes)
+invert_mesh = invert_meshes[0]
+invert_mesh.plot()

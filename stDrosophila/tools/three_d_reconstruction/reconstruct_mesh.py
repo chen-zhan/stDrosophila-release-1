@@ -25,16 +25,11 @@ def mesh_type(
 ) -> PolyData or UnstructuredGrid:
     """Get a new representation of this mesh as a new type."""
     if mtype == "polydata":
-        return (
-            mesh if isinstance(mesh, PolyData) else pv.PolyData(mesh.points, mesh.cells)
-        )
+        return mesh if isinstance(mesh, PolyData) else pv.PolyData(mesh.points, mesh.cells)
     elif mtype == "unstructured":
         return mesh.cast_to_unstructured_grid() if isinstance(mesh, PolyData) else mesh
     else:
-        raise ValueError(
-            "\n`mtype` value is wrong."
-            "\nAvailable `mtype` are: `'polydata'` and `'unstructured'`."
-        )
+        raise ValueError("\n`mtype` value is wrong." "\nAvailable `mtype` are: `'polydata'` and `'unstructured'`.")
 
 
 def construct_pcd(
@@ -91,9 +86,7 @@ def voxelize_pcd(
 
 def construct_surface(
     pcd: PolyData,
-    cs_method: Literal[
-        "basic", "slide", "alpha_shape", "ball_pivoting", "poisson"
-    ] = "basic",
+    cs_method: Literal["basic", "slide", "alpha_shape", "ball_pivoting", "poisson"] = "basic",
     cs_method_args: dict = None,
     surface_smoothness: int = 100,
     n_surf: int = 10000,
@@ -165,16 +158,12 @@ def construct_surface(
 
         if cs_method == "alpha_shape":
             alpha = _cs_method_args["al_alpha"]
-            mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_alpha_shape(
-                _pcd, alpha
-            )
+            mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_alpha_shape(_pcd, alpha)
 
         elif cs_method == "ball_pivoting":
             radii = _cs_method_args["ba_radii"]
 
-            _pcd.normals = o3d.utility.Vector3dVector(
-                np.zeros((1, 3))
-            )  # invalidate existing normals
+            _pcd.normals = o3d.utility.Vector3dVector(np.zeros((1, 3)))  # invalidate existing normals
             _pcd.estimate_normals()
 
             mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_ball_pivoting(
@@ -187,29 +176,19 @@ def construct_surface(
                 _cs_method_args["po_threshold"],
             )
 
-            _pcd.normals = o3d.utility.Vector3dVector(
-                np.zeros((1, 3))
-            )  # invalidate existing normals
+            _pcd.normals = o3d.utility.Vector3dVector(np.zeros((1, 3)))  # invalidate existing normals
             _pcd.estimate_normals()
 
-            with o3d.utility.VerbosityContextManager(
-                o3d.utility.VerbosityLevel.Debug
-            ) as cm:
+            with o3d.utility.VerbosityContextManager(o3d.utility.VerbosityLevel.Debug) as cm:
                 (
                     mesh,
                     densities,
-                ) = o3d.geometry.TriangleMesh.create_from_point_cloud_poisson(
-                    _pcd, depth=depth
-                )
-            mesh.remove_vertices_by_mask(
-                np.asarray(densities) < np.quantile(densities, density_threshold)
-            )
+                ) = o3d.geometry.TriangleMesh.create_from_point_cloud_poisson(_pcd, depth=depth)
+            mesh.remove_vertices_by_mask(np.asarray(densities) < np.quantile(densities, density_threshold))
 
         _vertices = np.asarray(mesh.vertices)
         _faces = np.asarray(mesh.triangles)
-        _faces = np.concatenate(
-            (np.ones((_faces.shape[0], 1), dtype=np.int64) * 3, _faces), axis=1
-        )
+        _faces = np.concatenate((np.ones((_faces.shape[0], 1), dtype=np.int64) * 3, _faces), axis=1)
         surf = pv.PolyData(_vertices, _faces.ravel()).extract_surface()
 
     else:
@@ -239,9 +218,7 @@ def construct_surface(
     return mesh_type(mesh=uniform_surf, mtype=mtype)
 
 
-def clip_pcd(
-    adata: AnnData, pcd: PolyData, surface: PolyData, invert: bool = True
-) -> Tuple[PolyData, AnnData]:
+def clip_pcd(adata: AnnData, pcd: PolyData, surface: PolyData, invert: bool = True) -> Tuple[PolyData, AnnData]:
     """Clip the original pcd using the reconstructed surface and reconstruct new point cloud."""
     pcd.point_data["index"] = adata.obs_names.to_numpy()
     clipped_pcd = pcd.clip_surface(surface, invert=invert)
@@ -309,9 +286,7 @@ def three_d_color(
     if isinstance(colormap, str):
         colormap = [
             mpl.colors.to_hex(i, keep_alpha=False)
-            for i in sns.color_palette(
-                palette=colormap, n_colors=len(cu_arr), as_cmap=False
-            )
+            for i in sns.color_palette(palette=colormap, n_colors=len(cu_arr), as_cmap=False)
         ]
     if isinstance(colormap, list):
         colormap = {t: color for t, color in zip(cu_arr, colormap)}
@@ -336,9 +311,7 @@ def construct_three_d_mesh(
     pcd_amap: Union[float, list, dict] = 1.0,
     pcd_voxelize: bool = False,
     pcd_voxel_size: Optional[list] = None,
-    cs_method: Literal[
-        "basic", "slide", "alpha_shape", "ball_pivoting", "poisson"
-    ] = "basic",
+    cs_method: Literal["basic", "slide", "alpha_shape", "ball_pivoting", "poisson"] = "basic",
     cs_method_args: dict = None,
     surf_smoothness: int = 100,
     n_surf: int = 10000,
@@ -388,9 +361,7 @@ def construct_three_d_mesh(
     """
 
     # Reconstruct a point cloud, surface or volumetric mesh.
-    pcd = construct_pcd(
-        adata=adata, coordsby=coordsby, mtype="polydata", coodtype=np.float64
-    )
+    pcd = construct_pcd(adata=adata, coordsby=coordsby, mtype="polydata", coodtype=np.float64)
 
     if mesh_style == "pcd":
         surface = None
@@ -406,34 +377,23 @@ def construct_three_d_mesh(
         clip_invert = True if cs_method in ["basic", "slide"] else False
         pcd, adata = clip_pcd(adata=adata, pcd=pcd, surface=surface, invert=clip_invert)
 
-    mesh = (
-        construct_volume(mesh=surface, volume_smoothness=vol_smoothness)
-        if mesh_style == "volume"
-        else surface
-    )
+    mesh = construct_volume(mesh=surface, volume_smoothness=vol_smoothness) if mesh_style == "volume" else surface
 
     # add `groupby` data
     mask_list = mask if isinstance(mask, list) else [mask]
     if groupby in adata.obs.columns:
-        groups = (
-            adata.obs[groupby].map(lambda x: "mask" if x in mask_list else x).values
-        )
+        groups = adata.obs[groupby].map(lambda x: "mask" if x in mask_list else x).values
     elif groupby in adata.var.index:
         groups = adata[:, groupby].X.flatten()
     elif groupby is None:
         groups = np.array(["same"] * adata.obs.shape[0])
     else:
         raise ValueError(
-            "\n`groupby` value is wrong."
-            "\n`groupby` should be one of adata.obs.columns, or one of adata.var.index\n"
+            "\n`groupby` value is wrong." "\n`groupby` should be one of adata.obs.columns, or one of adata.var.index\n"
         )
 
     # pcd
-    pcd = (
-        voxelize_pcd(pcd=pcd, voxel_size=pcd_voxel_size)
-        if pcd_voxelize
-        else mesh_type(pcd, mtype="unstructured")
-    )
+    pcd = voxelize_pcd(pcd=pcd, voxel_size=pcd_voxel_size) if pcd_voxelize else mesh_type(pcd, mtype="unstructured")
     pcd.cell_data[key_added] = groups
     pcd.cell_data[f"{key_added}_rgba"] = three_d_color(
         arr=groups,

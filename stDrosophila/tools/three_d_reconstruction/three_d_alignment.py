@@ -1,13 +1,13 @@
-from typing import List, Optional, Tuple, Union
-
 import nudged
 import numpy as np
 import ot
 import torch
+
 from anndata import AnnData
 from scipy.spatial import distance_matrix
 from scipy.sparse.csr import spmatrix
 from tqdm import tqdm
+from typing import List, Tuple, Union
 
 
 def pairwise_align(
@@ -19,6 +19,7 @@ def pairwise_align(
     device: Union[str, torch.device] = "cpu",
 ) -> np.ndarray:
     """Calculates and returns optimal alignment of two slices.
+
     Args:
         slice1: An AnnData object.
         slice2: An AnnData object.
@@ -27,15 +28,14 @@ def pairwise_align(
         numItermaxEmd: Max number of iterations for emd.
         device: Equipment used to run the program.
             Can also accept a torch.device. E.g.: torch.device('cuda:0')
+
     Returns:
         Alignment of spots.
     """
 
     torch.cuda.init()
     # Subset for common genes
-    common_genes = [
-        value for value in slice1.var.index if value in set(slice2.var.index)
-    ]
+    common_genes = [value for value in slice1.var.index if value in set(slice2.var.index)]
     slice1, slice2 = slice1[:, common_genes], slice2[:, common_genes]
 
     # Calculate expression dissimilarity
@@ -48,13 +48,9 @@ def pairwise_align(
         slice1_x / slice1_x.sum(axis=1, keepdims=True),
         slice2_x / slice2_x.sum(axis=1, keepdims=True),
     )
-    slice1_logx_slice1 = np.array(
-        [np.apply_along_axis(lambda x: np.dot(x, np.log(x).T), 1, slice1_x)]
-    )
+    slice1_logx_slice1 = np.array([np.apply_along_axis(lambda x: np.dot(x, np.log(x).T), 1, slice1_x)])
     slice1_logx_slice2 = np.dot(slice1_x, np.log(slice2_x).T)
-    M = torch.tensor(
-        slice1_logx_slice1.T - slice1_logx_slice2, device=device, dtype=torch.float32
-    )
+    M = torch.tensor(slice1_logx_slice1.T - slice1_logx_slice2, device=device, dtype=torch.float32)
 
     # Weight of spots
     p = torch.tensor(
@@ -108,6 +104,7 @@ def slice_alignment(
     verbose: bool = True,
 ):
     """Align spatial coordinates of slices.
+
     Args:
         slices: List of slices (AnnData Object).
         alpha: Trade-off parameter (0 < alpha < 1).
@@ -116,6 +113,7 @@ def slice_alignment(
         device: Equipment used to run the program.
             Can also accept a torch.device. E.g.: torch.device('cuda:0')
         verbose: Print information along iterations.
+
     Returns:
         List of slices (AnnData Object) after alignment.
     """
@@ -187,9 +185,12 @@ def slice_alignment_bigBin(
     verbose: bool = True,
 ) -> Tuple[List[AnnData], List[AnnData]]:
     """Align spatial coordinates of slices.
+
     If there are too many slice coordinates to be aligned, this method can be selected.
+
     First select the slices with fewer coordinates for alignment, and then calculate the affine transformation matrix.
     Secondly, the required slices are aligned through the calculated affine transformation matrix.
+
     Args:
         slices: List of slices (AnnData Object).
         slices_big: List of slices (AnnData Object) with a small number of coordinates.
@@ -199,6 +200,7 @@ def slice_alignment_bigBin(
         device: Equipment used to run the program.
             Can also accept a torch.device. E.g.: torch.device('cuda:0')
         verbose: Print information along iterations.
+
     Returns:
         Tuple of two elements. The first contains a list of slices after alignment.
         The second contains a list of slices with a small number of coordinates
