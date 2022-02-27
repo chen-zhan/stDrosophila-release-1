@@ -10,7 +10,7 @@ import seaborn as sns
 
 from anndata import AnnData
 from pandas.core.frame import DataFrame
-from pyvista import PolyData, UnstructuredGrid
+from pyvista import PolyData, UnstructuredGrid, MultiBlock
 from typing import Optional, Tuple, Union, List
 
 try:
@@ -33,7 +33,7 @@ def mesh_type(
     else:
         raise ValueError(
             "\n`mtype` value is wrong."
-            "\nAvailable `mtype` are: `polydata` and `unstructured`.\n"
+            "\nAvailable `mtype` are: `'polydata'` and `'unstructured'`."
         )
 
 
@@ -104,13 +104,13 @@ def construct_surface(
 
     Args:
         pcd: A point cloud.
-        cs_method: The methods of creating a surface mesh. Available cs_method are:
+        cs_method: The methods of creating a surface mesh. Available `cs_method` are:
                 * `'basic'`
                 * `'slide'`
                 * `'alpha_shape'`
                 * `'ball_pivoting'`
                 * `'poisson'`
-        cs_method_args: Parameters for various surface reconstruction methods. Available Parameters are:
+        cs_method_args: Parameters for various surface reconstruction methods. Available `cs_method_args` are:
                 * `'slide'` method: {"n_slide": 3}
                 * `'alpha_shape'` method: {"al_alpha": 10}
                 * `'ball_pivoting'` method: {"ba_radii": [1, 1, 1, 1]}
@@ -215,7 +215,7 @@ def construct_surface(
     else:
         raise ValueError(
             "\n`cs_method` value is wrong."
-            "\nAvailable `cs_method` are: `basic` , `slide` ,`alpha_shape`, `ball_pivoting`, `poisson`.\n"
+            "\nAvailable `cs_method` are: `'basic'` , `'slide'` ,`'alpha_shape'`, `'ball_pivoting'`, `'poisson'`."
         )
 
     # Get an all triangle mesh.
@@ -352,23 +352,23 @@ def construct_three_d_mesh(
         groupby: The key of the observations grouping to consider.
         key_added: The key under which to add the labels.
         mask: The part that you don't want to be displayed.
-        mesh_style: The style of the reconstructed mesh. Available mesh_style are:
+        mesh_style: The style of the reconstructed mesh. Available `mesh_style` are:
                 * `'pcd'`
                 * `'surface'`
                 * `'volume'`
         mesh_color: Color to use for plotting mesh. The default mesh_color is `'gainsboro'`.
         mesh_alpha: The opacity of the color to use for plotting mesh. The default mesh_color is `0.5`.
-        cs_method: The methods of creating a surface mesh. Available cs_method are:
+        pcd_cmap: Colors to use for plotting pcd. The default pcd_cmap is `'rainbow'`.
+        pcd_amap: The opacity of the colors to use for plotting pcd. The default pcd_amap is `1.0`.
+        pcd_voxelize: Voxelize the point cloud.
+        pcd_voxel_size: The size of the voxelized points. A list of three elements.
+        cs_method: The methods of creating a surface mesh. Available `cs_method` are:
                 * `'basic'`
                 * `'slide'`
                 * `'alpha_shape'`
                 * `'ball_pivoting'`
                 * `'poisson'`
-        pcd_cmap: Colors to use for plotting pcd. The default pcd_cmap is `'rainbow'`.
-        pcd_amap: The opacity of the colors to use for plotting pcd. The default pcd_amap is `1.0`.
-        pcd_voxelize: Voxelize the point cloud.
-        pcd_voxel_size: The size of the voxelized points. A list of three elements.
-        cs_method_args: Parameters for various surface reconstruction methods. Available Parameters are:
+        cs_method_args: Parameters for various surface reconstruction methods. Available `cs_method_args` are:
                 * `'slide'` method: {"n_slide": 3}
                 * `'alpha_shape'` method: {"al_alpha": 10}
                 * `'ball_pivoting'` method: {"ba_radii": [1, 1, 1, 1]}
@@ -455,9 +455,7 @@ def construct_three_d_mesh(
 
 
 def merge_mesh(
-    meshes: Union[
-        List[PolyData or UnstructuredGrid], Tuple[PolyData or UnstructuredGrid]
-    ],
+    meshes: List[PolyData or UnstructuredGrid],
 ) -> PolyData or UnstructuredGrid:
     """Merge all meshes in the `meshes` list. The format of all meshes must be the same."""
 
@@ -468,14 +466,39 @@ def merge_mesh(
     return merged_mesh
 
 
-def save_mesh(
+def collect_mesh(
+    meshes: List[PolyData or UnstructuredGrid],
+    meshes_name: Optional[List[str]] = None,
+) -> MultiBlock:
+    """
+    A composite class to hold many data sets which can be iterated over.
+    You can think of MultiBlock like lists or dictionaries as we can iterate over this data structure by index and we can also access blocks by their string name.
+
+    If the input is a dictionary, it can be iterated in the following ways:
+        >>> blocks = collect_mesh(meshes, meshes_name)
+        >>> for name in blocks.keys():
+        ...     print(blocks[name])
+
+    If the input is a list, it can be iterated in the following ways:
+        >>> blocks = collect_mesh(meshes)
+        >>> for block in blocks:
+        ...    print(block)
+    """
+
+    if meshes_name is not None:
+        meshes = {name: mesh for mesh, name in zip(meshes, meshes_name)}
+
+    return pv.MultiBlock(meshes)
+
+
+def mesh_to_ply(
     mesh: Union[PolyData, UnstructuredGrid],
     filename: str,
     binary: bool = True,
     texture: Union[str, np.ndarray] = None,
 ):
     """
-    Save the vtk object to file (only available when saving PLY files).
+    Save the vtk object to PLY files.
     Args:
         mesh: A reconstructed mesh.
         filename: Filename of output file. Writer type is inferred from the extension of the filename.
@@ -486,4 +509,11 @@ def save_mesh(
                  If a string is provided, the texture array will be saved to disk as that name.
                  If an array is provided, the texture array will be saved as 'RGBA'
     """
-    mesh.save(filename=filename, binary=binary, texture=texture)
+
+    if filename.endswith(".ply"):
+        mesh.save(filename=filename, binary=binary, texture=texture)
+    else:
+        raise ValueError(
+            "\nFilename is wrong. This function is only available when saving PLY files, "
+            "\nplease enter a filename ending with `.ply`."
+        )

@@ -3,6 +3,11 @@
   <component name="ChangeListManager">
     <list default="true" id="9a2c2dc7-2c14-4617-ac32-f7b0492663f4" name="Changes" comment="update">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/key_tutorial/three_d_analysis/sample.py" beforeDir="false" afterPath="$PROJECT_DIR$/key_tutorial/three_d_analysis/sample.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stDrosophila/tools/three_d_analysis/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/stDrosophila/tools/three_d_analysis/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stDrosophila/tools/three_d_analysis/reconstruct_mesh.py" beforeDir="false" afterPath="$PROJECT_DIR$/stDrosophila/tools/three_d_analysis/reconstruct_mesh.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stDrosophila/tools/three_d_analysis/slicing.py" beforeDir="false" afterPath="$PROJECT_DIR$/stDrosophila/tools/three_d_analysis/slicing.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stDrosophila/tools/three_d_analysis/spliting.py" beforeDir="false" afterPath="$PROJECT_DIR$/stDrosophila/tools/three_d_analysis/spliting.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/stDrosophila/tools/three_d_analysis/volumetric.py" beforeDir="false" afterPath="$PROJECT_DIR$/stDrosophila/tools/three_d_analysis/volumetric.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -27,6 +32,35 @@
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="settings.editor.selected.configurable" value="Jupyter Settings" />
   </component>
+  <component name="RunManager">
+    <configuration name="sample" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="stDrosophila-release" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/key_tutorial/three_d_analysis" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/key_tutorial/three_d_analysis/sample.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Python.sample" />
+      </list>
+    </recent_temporary>
+  </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
@@ -40,7 +74,7 @@
       <workItem from="1644808059883" duration="21000" />
       <workItem from="1645104193549" duration="2000" />
       <workItem from="1645153602770" duration="8000" />
-      <workItem from="1645807266216" duration="1075000" />
+      <workItem from="1645807266216" duration="27196000" />
     </task>
     <task id="LOCAL-00001" summary="update">
       <created>1645807303543</created>
@@ -49,7 +83,14 @@
       <option name="project" value="LOCAL" />
       <updated>1645807303543</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="update">
+      <created>1645808393079</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1645808393079</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -69,5 +110,8 @@
   <component name="VcsManagerConfiguration">
     <MESSAGE value="update" />
     <option name="LAST_COMMIT_MESSAGE" value="update" />
+  </component>
+  <component name="com.intellij.coverage.CoverageDataManagerImpl">
+    <SUITE FILE_PATH="coverage/stDrosophila_release$sample.coverage" NAME="sample Coverage Results" MODIFIED="1645960365709" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/key_tutorial/three_d_analysis" />
   </component>
 </project>

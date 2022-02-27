@@ -1,7 +1,7 @@
 import anndata as ad
 import numpy as np
 import stDrosophila as sd
-
+from pyvista import MultiBlock
 
 # Example data
 file = r"D:\BGIpy37_pytorch113\E16-18_a_SCT_anno.h5ad"
@@ -21,16 +21,20 @@ pcd, volume = sd.tl.construct_three_d_mesh(
     adata=adata,
     groupby="anno",
     key_added="groups",
-    mesh_style="surf",
+    mesh_style="volume",
+    mesh_color="blue",
     pcd_cmap="rainbow",
     pcd_amap=0.8,
     pcd_voxelize=True,
     pcd_voxel_size=[0.5, 0.5, 0.5],
     cs_method="alpha_shape",
 )
-mesh = sd.tl.merge_mesh([pcd, volume])
+import pyvista as pv
 
-picked = sd.tl.three_d_split(mesh=mesh, key="groups")
+new_mesh = volume.slice_orthogonal()
+print(type(new_mesh))
+"""
+picked = sd.tl.three_d_split(mesh=pcd, key="groups")
 
 import pyvista as pv
 
@@ -40,3 +44,4 @@ for selected_mesh in picked:
     separated_meshes.append(selected_mesh)
     pv.plot(selected_mesh)
 pv.plot(separated_meshes)
+"""
