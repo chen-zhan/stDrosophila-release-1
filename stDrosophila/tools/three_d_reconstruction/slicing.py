@@ -1,4 +1,5 @@
 import warnings
+import pyvista as pv
 
 from pyvista import PolyData, UnstructuredGrid
 from typing import List, Optional, Sequence, Union

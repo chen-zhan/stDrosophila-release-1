@@ -93,38 +93,39 @@ def create_plotter(
     plotter.add_camera_orientation_widget()
 
     # Add a legend to the plotter.
-
-    _hex = pd.Series([mpl.colors.to_hex(i) for i in mesh[f"{key}_rgba"]])
     _label = pd.Series(mesh[key])
+    _hex = pd.Series([mpl.colors.to_hex(i) for i in mesh[f"{key}_rgba"]])
 
     _legend_data = pd.concat([_label, _hex], axis=1)
     _legend_data.columns = ["label", "hex"]
     _legend_data = _legend_data[_legend_data["label"] != "mask"]
     _legend_data.drop_duplicates(inplace=True)
-    _legend_data.sort_values(by=["label", "hex"], inplace=True)
-    _legend_data = _legend_data.astype(str)
 
-    try:
-        _label_new = _legend_data["label"]
-        _label_new = _label_new.astype(float)
-        _label_type = "float"
-    except:
-        _label_type = "str"
+    if len(_legend_data.index) != 0:
+        _legend_data.sort_values(by=["label", "hex"], inplace=True)
+        _legend_data = _legend_data.astype(str)
 
-    gap = math.ceil(len(_legend_data.index) / 5) if _label_type == "float" else 1
-    legend_entries = [
-        [_legend_data["label"].iloc[i], _legend_data["hex"].iloc[i]] for i in range(0, len(_legend_data.index), gap)
-    ]
-    if _label_type == "float":
-        legend_entries.append([_legend_data["label"].iloc[-1], _legend_data["hex"].iloc[-1]])
+        try:
+            _label_new = _legend_data["label"]
+            _label_new = _label_new.astype(float)
+            _label_type = "float"
+        except:
+            _label_type = "str"
 
-    plotter.add_legend(
-        legend_entries,
-        face="circle",
-        bcolor=None,
-        loc=legend_loc,
-        size=legend_size,
-    )
+        gap = math.ceil(len(_legend_data.index) / 5) if _label_type == "float" else 1
+        legend_entries = [
+            [_legend_data["label"].iloc[i], _legend_data["hex"].iloc[i]] for i in range(0, len(_legend_data.index), gap)
+        ]
+        if _label_type == "float":
+            legend_entries.append([_legend_data["label"].iloc[-1], _legend_data["hex"].iloc[-1]])
+
+        plotter.add_legend(
+            legend_entries,
+            face="circle",
+            bcolor=None,
+            loc=legend_loc,
+            size=legend_size,
+        )
 
     return plotter
 
@@ -169,8 +170,7 @@ def output_plotter(
     # Output the plotter in the format of the output file.
     if filename_format in ["png", "tif", "tiff", "bmp", "jpeg", "jpg"]:
         _, img = p.show(
-            screenshot=filename_format,
-            interactive=False,
+            screenshot=filename,
             return_img=True,
             return_cpos=True,
         )

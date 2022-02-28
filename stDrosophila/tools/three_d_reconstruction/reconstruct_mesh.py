@@ -394,6 +394,16 @@ def construct_three_d_mesh(
 
     # pcd
     pcd = voxelize_pcd(pcd=pcd, voxel_size=pcd_voxel_size) if pcd_voxelize else mesh_type(pcd, mtype="unstructured")
+
+    pcd.point_data[key_added] = groups
+    pcd.point_data[f"{key_added}_rgba"] = three_d_color(
+        arr=groups,
+        colormap=pcd_cmap,
+        alphamap=pcd_amap,
+        mask_color="gainsboro",
+        mask_alpha=0,
+    ).astype(np.float64)
+
     pcd.cell_data[key_added] = groups
     pcd.cell_data[f"{key_added}_rgba"] = three_d_color(
         arr=groups,
@@ -406,6 +416,12 @@ def construct_three_d_mesh(
     # surface mesh or volumetric mesh
     if mesh is not None:
         mesh = mesh_type(mesh, mtype="unstructured")
+
+        mesh.point_data[key_added] = np.array(["mask"] * mesh.n_points).astype(str)
+        mesh.point_data[f"{key_added}_rgba"] = np.array(
+            [mpl.colors.to_rgba(mesh_color, alpha=mesh_alpha)] * mesh.n_points
+        ).astype(np.float64)
+
         mesh.cell_data[key_added] = np.array(["mask"] * mesh.n_cells).astype(str)
         mesh.cell_data[f"{key_added}_rgba"] = np.array(
             [mpl.colors.to_rgba(mesh_color, alpha=mesh_alpha)] * mesh.n_cells
@@ -451,14 +467,14 @@ def collect_mesh(
     return pv.MultiBlock(meshes)
 
 
-def mesh_to_ply(
+def mesh_to_vtk(
     mesh: Union[PolyData, UnstructuredGrid],
     filename: str,
     binary: bool = True,
     texture: Union[str, np.ndarray] = None,
 ):
     """
-    Save the vtk object to PLY files.
+    Save the vtk object to vtk files.
     Args:
         mesh: A reconstructed mesh.
         filename: Filename of output file. Writer type is inferred from the extension of the filename.
@@ -470,10 +486,10 @@ def mesh_to_ply(
                  If an array is provided, the texture array will be saved as 'RGBA'
     """
 
-    if filename.endswith(".ply"):
+    if filename.endswith(".vtk"):
         mesh.save(filename=filename, binary=binary, texture=texture)
     else:
         raise ValueError(
-            "\nFilename is wrong. This function is only available when saving PLY files."
-            "\nPlease enter a filename ending with `.ply`."
+            "\nFilename is wrong. This function is only available when saving vtk files."
+            "\nPlease enter a filename ending with `.vtk`."
         )

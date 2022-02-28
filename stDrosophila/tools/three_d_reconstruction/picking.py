@@ -17,12 +17,12 @@ from .reconstruct_mesh import merge_mesh
 
 
 def three_d_pick(
-    mesh: Union[PolyData, UnstructuredGrid],
+    mesh: PolyData or UnstructuredGrid,
     key: str = "groups",
     pick_method: Literal["rectangle", "box"] = "rectangle",
     invert: bool = False,
     merge: bool = True,
-) -> List[PolyData or UnstructuredGrid]:
+) -> List[PolyData or UnstructuredGrid] or UnstructuredGrid:
     """
     Pick the interested part of a reconstructed 3D mesh by interactive approach.
     Args:
@@ -71,6 +71,7 @@ def three_d_pick(
             # track the picked meshes and label them
             original_mesh["picked_index"] = np.ones(original_mesh.n_points) * len(picked_meshes)
             picked_meshes.append(original_mesh)
+            invert_meshes.append(mesh)
 
         p.enable_cell_picking(
             mesh=mesh,
