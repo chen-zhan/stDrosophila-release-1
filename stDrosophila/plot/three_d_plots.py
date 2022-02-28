@@ -80,8 +80,14 @@ def create_plotter(
     plotter.background_color = background
 
     # Add a mesh to the plotter.
-    plotter.add_mesh(mesh, scalars=f"{key}_rgba", rgba=True, render_points_as_spheres=True,
-                     ambient=ambient, opacity=opacity)
+    plotter.add_mesh(
+        mesh,
+        scalars=f"{key}_rgba",
+        rgba=True,
+        render_points_as_spheres=True,
+        ambient=ambient,
+        opacity=opacity,
+    )
 
     # Add a camera orientation widget to the plotter.
     plotter.add_camera_orientation_widget()
@@ -107,8 +113,7 @@ def create_plotter(
 
     gap = math.ceil(len(_legend_data.index) / 5) if _label_type == "float" else 1
     legend_entries = [
-        [_legend_data["label"].iloc[i], _legend_data["hex"].iloc[i]]
-        for i in range(0, len(_legend_data.index), gap)
+        [_legend_data["label"].iloc[i], _legend_data["hex"].iloc[i]] for i in range(0, len(_legend_data.index), gap)
     ]
     if _label_type == "float":
         legend_entries.append([_legend_data["label"].iloc[-1], _legend_data["hex"].iloc[-1]])
@@ -145,6 +150,7 @@ def output_plotter(
         img: Numpy array of the last image.
              Returned only if filename ending with `.png`, `.tif`, `.tiff`, `.bmp`, `.jpeg`, `.jpg`.
     """
+
     def _to_gif(_filename, _view_up):
         """Output plotter to gif file."""
         path = p.generate_orbital_path(factor=2.0, shift=0, viewup=_view_up, n_points=20)
@@ -162,7 +168,12 @@ def output_plotter(
 
     # Output the plotter in the format of the output file.
     if filename_format in ["png", "tif", "tiff", "bmp", "jpeg", "jpg"]:
-        _, img = p.show(screenshot=filename_format, interactive=False, return_img=True, return_cpos=True)
+        _, img = p.show(
+            screenshot=filename_format,
+            interactive=False,
+            return_img=True,
+            return_cpos=True,
+        )
         return img
     elif filename_format == "gif":
         _to_gif(_filename=filename, _view_up=view_up)
@@ -186,13 +197,13 @@ def save_plotter(
 ):
     """Save plotter as gltf file, html file, obj file or vtkjs file.
 
-     Args:
-        p: The plotting object to display pyvista/vtk mesh.
-        filename: The filename of the file where the plotter is saved. Writer type is inferred from the extension of the filename.
-            * Output a gltf file, please enter a filename ending with `.gltf`.
-            * Output a html file, please enter a filename ending with `.html`.
-            * Output an obj file, please enter a filename ending with `.obj`.
-            * Output a vtkjs file, please enter a filename without format.
+    Args:
+       p: The plotting object to display pyvista/vtk mesh.
+       filename: The filename of the file where the plotter is saved. Writer type is inferred from the extension of the filename.
+           * Output a gltf file, please enter a filename ending with `.gltf`.
+           * Output a html file, please enter a filename ending with `.html`.
+           * Output an obj file, please enter a filename ending with `.obj`.
+           * Output a vtkjs file, please enter a filename without format.
     """
 
     # The format of the save file.
@@ -280,21 +291,41 @@ def three_d_plot(
              Returned only if filename ending with `.png`, `.tif`, `.tiff`, `.bmp`, `.jpeg`, `.jpg`.
     """
     # Create a plotting object to display pyvista/vtk mesh.
-    p1 = create_plotter(mesh=mesh, key=key, off_screen=off_screen, window_size=window_size, background=background,
-                        background_r=background_r, ambient=ambient, opacity=opacity, initial_cpo=initial_cpo,
-                        legend_loc=legend_loc, legend_size=legend_size)
-    p2 = create_plotter(mesh=mesh, key=key, off_screen=True, window_size=window_size, background=background,
-                        background_r=background_r, ambient=ambient, opacity=opacity, initial_cpo=initial_cpo,
-                        legend_loc=legend_loc, legend_size=legend_size)
+    p1 = create_plotter(
+        mesh=mesh,
+        key=key,
+        off_screen=off_screen,
+        window_size=window_size,
+        background=background,
+        background_r=background_r,
+        ambient=ambient,
+        opacity=opacity,
+        initial_cpo=initial_cpo,
+        legend_loc=legend_loc,
+        legend_size=legend_size,
+    )
+    p2 = create_plotter(
+        mesh=mesh,
+        key=key,
+        off_screen=True,
+        window_size=window_size,
+        background=background,
+        background_r=background_r,
+        ambient=ambient,
+        opacity=opacity,
+        initial_cpo=initial_cpo,
+        legend_loc=legend_loc,
+        legend_size=legend_size,
+    )
     p2.camera_position = p1.show(return_cpos=True)
 
     # Save the plotting object.
-    if save_plotter is not None:
+    if plotter_filename is not None:
         save_plotter(p2, filename=plotter_filename)
 
     # Output the plotting object.
-    try:
-        return output_plotter(p=p2, filename=filename, view_up=view_up, framerate=framerate)
-    except:
-        output_plotter(p=p2, filename=filename, view_up=view_up, framerate=framerate)
-
+    if filename is not None:
+        try:
+            return output_plotter(p=p2, filename=filename, view_up=view_up, framerate=framerate)
+        except:
+            output_plotter(p=p2, filename=filename, view_up=view_up, framerate=framerate)
