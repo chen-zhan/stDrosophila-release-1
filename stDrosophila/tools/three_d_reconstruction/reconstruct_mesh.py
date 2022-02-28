@@ -474,6 +474,6 @@ def mesh_to_ply(
         mesh.save(filename=filename, binary=binary, texture=texture)
     else:
         raise ValueError(
-            "\nFilename is wrong. This function is only available when saving PLY files, "
-            "\nplease enter a filename ending with `.ply`."
+            "\nFilename is wrong. This function is only available when saving PLY files."
+            "\nPlease enter a filename ending with `.ply`."
         )
