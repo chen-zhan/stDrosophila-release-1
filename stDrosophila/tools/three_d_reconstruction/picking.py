@@ -69,7 +69,9 @@ def three_d_pick(
             p.add_legend(legend)
 
             # track the picked meshes and label them
-            original_mesh["picked_index"] = np.ones(original_mesh.n_points) * len(picked_meshes)
+            original_mesh["picked_index"] = np.ones(original_mesh.n_points) * len(
+                picked_meshes
+            )
             picked_meshes.append(original_mesh)
             invert_meshes.append(mesh)
 
@@ -79,7 +81,7 @@ def three_d_pick(
             show=False,
             font_size=12,
             show_message="Press `r` to enable retangle based selection. Press `r` again to turn it off. \n"
-                         "Press `q` to exit the interactive window. ",
+            "Press `q` to exit the interactive window. ",
         )
         p.show()
         picked_meshes = [invert_meshes[0]] if invert else picked_meshes

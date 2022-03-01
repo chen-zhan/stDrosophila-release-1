@@ -11,7 +11,9 @@ def _log(m):
     print(f"\n[-----{m}")
 
 
-def mesh_morphology(mesh: Union[PolyData, UnstructuredGrid], verbose: bool = True) -> Tuple[float, float, float]:
+def mesh_morphology(
+    mesh: Union[PolyData, UnstructuredGrid], verbose: bool = True
+) -> Tuple[float, float, float]:
     """
     Return the basic morphological characteristics of mesh,
     including mesh volume, mesh surface area, volume / surface area ratio.
@@ -96,7 +98,11 @@ def pcd_KDE(
     """
 
     coords = pcd.points
-    pcd_kde = KernelDensity(kernel=kernel, bandwidth=bandwidth).fit(coords).score_samples(coords)
+    pcd_kde = (
+        KernelDensity(kernel=kernel, bandwidth=bandwidth)
+        .fit(coords)
+        .score_samples(coords)
+    )
     pcd.point_data[key_added] = pcd_kde
 
     return pcd

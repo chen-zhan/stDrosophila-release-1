@@ -114,10 +114,13 @@ def create_plotter(
 
         gap = math.ceil(len(_legend_data.index) / 5) if _label_type == "float" else 1
         legend_entries = [
-            [_legend_data["label"].iloc[i], _legend_data["hex"].iloc[i]] for i in range(0, len(_legend_data.index), gap)
+            [_legend_data["label"].iloc[i], _legend_data["hex"].iloc[i]]
+            for i in range(0, len(_legend_data.index), gap)
         ]
         if _label_type == "float":
-            legend_entries.append([_legend_data["label"].iloc[-1], _legend_data["hex"].iloc[-1]])
+            legend_entries.append(
+                [_legend_data["label"].iloc[-1], _legend_data["hex"].iloc[-1]]
+            )
 
         plotter.add_legend(
             legend_entries,
@@ -154,7 +157,9 @@ def output_plotter(
 
     def _to_gif(_filename, _view_up):
         """Output plotter to gif file."""
-        path = p.generate_orbital_path(factor=2.0, shift=0, viewup=_view_up, n_points=20)
+        path = p.generate_orbital_path(
+            factor=2.0, shift=0, viewup=_view_up, n_points=20
+        )
         p.open_gif(_filename)
         p.orbit_on_path(path, write_frames=True, viewup=(0, 0, 1), step=0.1)
 
@@ -326,6 +331,10 @@ def three_d_plot(
     # Output the plotting object.
     if filename is not None:
         try:
-            return output_plotter(p=p2, filename=filename, view_up=view_up, framerate=framerate)
+            return output_plotter(
+                p=p2, filename=filename, view_up=view_up, framerate=framerate
+            )
         except:
-            output_plotter(p=p2, filename=filename, view_up=view_up, framerate=framerate)
+            output_plotter(
+                p=p2, filename=filename, view_up=view_up, framerate=framerate
+            )

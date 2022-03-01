@@ -57,10 +57,13 @@ def three_d_slice(
                 tubing=True,
             )
         elif slice_method == "orthogonal":
-            p.add_mesh_slice_orthogonal(mesh, scalars=f"{key}_rgba", rgba=True, tubing=True)
+            p.add_mesh_slice_orthogonal(
+                mesh, scalars=f"{key}_rgba", rgba=True, tubing=True
+            )
         else:
             raise ValueError(
-                "\n`slice_method` value is wrong." "\nAvailable `slice_method` are: `'axis'`, `'orthogonal'`."
+                "\n`slice_method` value is wrong."
+                "\nAvailable `slice_method` are: `'axis'`, `'orthogonal'`."
             )
         p.show()
         slices = p.plane_sliced_meshes
@@ -70,15 +73,19 @@ def three_d_slice(
             slices_blocks = mesh.slice_along_axis(
                 n=_slice_method_args["n_slices"],
                 axis=_slice_method_args["axis"],
-                center=_slice_method_args["center"]
+                center=_slice_method_args["center"],
             )
         elif slice_method == "orthogonal":
             # Create three orthogonal slices through the dataset on the three cartesian planes.
-            center = (None, None, None) if _slice_method_args["center"] is None else _slice_method_args["center"]
+            center = (
+                (None, None, None)
+                if _slice_method_args["center"] is None
+                else _slice_method_args["center"]
+            )
             slices_blocks = mesh.slice_orthogonal(x=center[0], y=center[1], z=center[2])
         else:
             raise ValueError(
-                "\n`slice_method` value is wrong." 
+                "\n`slice_method` value is wrong."
                 "\nAvailable `slice_method` are: `'axis'`, `'orthogonal'`."
             )
 

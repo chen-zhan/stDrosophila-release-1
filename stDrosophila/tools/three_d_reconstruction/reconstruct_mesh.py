@@ -24,12 +24,16 @@ def mesh_type(
 ) -> PolyData or UnstructuredGrid:
     """Get a new representation of this mesh as a new type."""
     if mtype == "polydata":
-        return mesh if isinstance(mesh, PolyData) else pv.PolyData(mesh.points, mesh.cells)
+        return (
+            mesh if isinstance(mesh, PolyData) else pv.PolyData(mesh.points, mesh.cells)
+        )
     elif mtype == "unstructured":
         return mesh.cast_to_unstructured_grid() if isinstance(mesh, PolyData) else mesh
     else:
-        raise ValueError("\n`mtype` value is wrong." 
-                         "\nAvailable `mtype` are: `'polydata'` and `'unstructuredgrid'`.")
+        raise ValueError(
+            "\n`mtype` value is wrong."
+            "\nAvailable `mtype` are: `'polydata'` and `'unstructuredgrid'`."
+        )
 
 
 def construct_pcd(
@@ -75,14 +79,16 @@ def construct_pcd(
     mask_list = mask if isinstance(mask, list) else [mask]
 
     if groupby in adata.obs.columns:
-        groups = adata.obs[groupby].map(lambda x: "mask" if x in mask_list else x).values
+        groups = (
+            adata.obs[groupby].map(lambda x: "mask" if x in mask_list else x).values
+        )
     elif groupby in adata.var.index:
         groups = adata[:, groupby].X.flatten()
     elif groupby is None:
         groups = np.array(["same"] * adata.obs.shape[0])
     else:
         raise ValueError(
-            "\n`groupby` value is wrong." 
+            "\n`groupby` value is wrong."
             "\n`groupby` should be one of adata.obs.columns, or one of adata.var.index"
         )
 
@@ -91,7 +97,7 @@ def construct_pcd(
         labels=groups,
         key_added=key_added,
         colormap=colormap,
-        alphamap=alphamap
+        alphamap=alphamap,
     )
 
     return pcd
@@ -125,7 +131,9 @@ def construct_surface(
     key_added: str = "groups",
     color: Optional[str] = "gainsboro",
     alpha: Optional[float] = 0.8,
-    cs_method: Literal["basic", "slide", "alpha_shape", "ball_pivoting", "poisson"] = "basic",
+    cs_method: Literal[
+        "basic", "slide", "alpha_shape", "ball_pivoting", "poisson"
+    ] = "basic",
     cs_method_args: dict = None,
     surface_smoothness: int = 100,
     n_surf: int = 10000,
@@ -182,7 +190,7 @@ def construct_surface(
         z_data = pd.Series(pcd.points[:, 2])
         layers = np.unique(z_data.tolist())
         n_layer_groups = len(layers) - n_slide + 1
-        layer_groups = [layers[i: i + n_slide] for i in range(n_layer_groups)]
+        layer_groups = [layers[i : i + n_slide] for i in range(n_layer_groups)]
 
         points = np.empty(shape=[0, 3])
         for layer_group in layer_groups:
@@ -201,12 +209,16 @@ def construct_surface(
 
         if cs_method == "alpha_shape":
             alpha = _cs_method_args["al_alpha"]
-            mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_alpha_shape(_pcd, alpha)
+            mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_alpha_shape(
+                _pcd, alpha
+            )
 
         elif cs_method == "ball_pivoting":
             radii = _cs_method_args["ba_radii"]
 
-            _pcd.normals = o3d.utility.Vector3dVector(np.zeros((1, 3)))  # invalidate existing normals
+            _pcd.normals = o3d.utility.Vector3dVector(
+                np.zeros((1, 3))
+            )  # invalidate existing normals
             _pcd.estimate_normals()
 
             mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_ball_pivoting(
@@ -219,19 +231,29 @@ def construct_surface(
                 _cs_method_args["po_threshold"],
             )
 
-            _pcd.normals = o3d.utility.Vector3dVector(np.zeros((1, 3)))  # invalidate existing normals
+            _pcd.normals = o3d.utility.Vector3dVector(
+                np.zeros((1, 3))
+            )  # invalidate existing normals
             _pcd.estimate_normals()
 
-            with o3d.utility.VerbosityContextManager(o3d.utility.VerbosityLevel.Debug) as cm:
+            with o3d.utility.VerbosityContextManager(
+                o3d.utility.VerbosityLevel.Debug
+            ) as cm:
                 (
                     mesh,
                     densities,
-                ) = o3d.geometry.TriangleMesh.create_from_point_cloud_poisson(_pcd, depth=depth)
-            mesh.remove_vertices_by_mask(np.asarray(densities) < np.quantile(densities, density_threshold))
+                ) = o3d.geometry.TriangleMesh.create_from_point_cloud_poisson(
+                    _pcd, depth=depth
+                )
+            mesh.remove_vertices_by_mask(
+                np.asarray(densities) < np.quantile(densities, density_threshold)
+            )
 
         _vertices = np.asarray(mesh.vertices)
         _faces = np.asarray(mesh.triangles)
-        _faces = np.concatenate((np.ones((_faces.shape[0], 1), dtype=np.int64) * 3, _faces), axis=1)
+        _faces = np.concatenate(
+            (np.ones((_faces.shape[0], 1), dtype=np.int64) * 3, _faces), axis=1
+        )
         surf = pv.PolyData(_vertices, _faces.ravel()).extract_surface()
 
     else:
@@ -265,7 +287,7 @@ def construct_surface(
         labels=labels,
         key_added=key_added,
         colormap=color,
-        alphamap=alpha
+        alphamap=alpha,
     )
 
     # Clip the original pcd using the reconstructed surface and reconstruct new point cloud.
@@ -305,11 +327,7 @@ def construct_volume(
     # Add labels and the colormap of the volumetric mesh
     labels = np.array(["volume"] * volume.n_points).astype(str)
     volume = add_mesh_labels(
-        mesh=volume,
-        labels=labels,
-        key_added=key_added,
-        colormap=color,
-        alphamap=alpha
+        mesh=volume, labels=labels, key_added=key_added, colormap=color, alphamap=alpha
     )
 
     return volume
@@ -371,7 +389,9 @@ def add_mesh_labels(
 
     # Added labels and rgba of the labels
     mesh.point_data[key_added] = labels
-    mesh.point_data[f"{key_added}_rgba"] = np.array([cu_dict[g] for g in labels]).astype(np.float64)
+    mesh.point_data[f"{key_added}_rgba"] = np.array(
+        [cu_dict[g] for g in labels]
+    ).astype(np.float64)
 
     return mesh
 
