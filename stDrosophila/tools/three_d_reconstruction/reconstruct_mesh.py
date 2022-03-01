@@ -9,7 +9,7 @@ import PVGeo
 
 from anndata import AnnData
 from pandas.core.frame import DataFrame
-from pyvista import PolyData, UnstructuredGrid, MultiBlock
+from pyvista import PolyData, UnstructuredGrid, MultiBlock, DataSet
 from typing import Optional, Tuple, Union, List
 
 try:
@@ -20,7 +20,7 @@ except ImportError:
 
 def mesh_type(
     mesh: Union[PolyData, UnstructuredGrid],
-    mtype: Literal["polydata", "unstructured"] = "polydata",
+    mtype: Literal["polydata", "unstructuredgrid"] = "polydata",
 ) -> PolyData or UnstructuredGrid:
     """Get a new representation of this mesh as a new type."""
     if mtype == "polydata":
@@ -28,13 +28,18 @@ def mesh_type(
     elif mtype == "unstructured":
         return mesh.cast_to_unstructured_grid() if isinstance(mesh, PolyData) else mesh
     else:
-        raise ValueError("\n`mtype` value is wrong." "\nAvailable `mtype` are: `'polydata'` and `'unstructured'`.")
+        raise ValueError("\n`mtype` value is wrong." 
+                         "\nAvailable `mtype` are: `'polydata'` and `'unstructuredgrid'`.")
 
 
 def construct_pcd(
     adata: AnnData,
     coordsby: str = "spatial",
-    mtype: Literal["polydata", "unstructured"] = "polydata",
+    groupby: Optional[str] = None,
+    key_added: str = "groups",
+    mask: Union[str, int, float, list] = None,
+    colormap: Union[str, list, dict] = "rainbow",
+    alphamap: Union[float, list, dict] = 1.0,
     coodtype: type = np.float64,
 ) -> PolyData or UnstructuredGrid:
     """
@@ -43,21 +48,53 @@ def construct_pcd(
     Args:
         adata: AnnData object.
         coordsby: The key from adata.obsm whose value will be used to reconstruct the 3D structure.
-        mtype: The type of the reconstructed surface. Available `mtype` are:
-                * `'polydata'`
-                * `'unstructured'`
+        groupby: The key of the observations grouping to consider.
+        key_added: The key under which to add the labels.
+        mask: The part that you don't want to be displayed.
+        colormap: Colors to use for plotting pcd. The default pcd_cmap is `'rainbow'`.
+        alphamap: The opacity of the colors to use for plotting pcd. The default pcd_amap is `1.0`.
         coodtype: Data type of 3D coordinate information.
 
     Returns:
-        A point cloud.
+        pcd: A point cloud, which contains the following properties:
+            `pcd.point_data["obs_index"]`, the obs_index of each coordinate in the original adata.
+            `pcd.point_data[key_added]`, the `groupby` array;
+            `pcd.point_data[f'{key_added}_rgba']`, the rgba colors of the labels.
     """
 
+    # create an initial pcd.
     bucket_xyz = adata.obsm[coordsby].astype(coodtype)
     if isinstance(bucket_xyz, DataFrame):
         bucket_xyz = bucket_xyz.values
     pcd = pv.PolyData(bucket_xyz)
 
-    return mesh_type(mesh=pcd, mtype=mtype)
+    # The obs_index of each coordinate in the original adata.
+    pcd.point_data["obs_index"] = adata.obs_names.to_numpy()
+
+    # The`groupby` array in original adata.obs or adata.X
+    mask_list = mask if isinstance(mask, list) else [mask]
+
+    if groupby in adata.obs.columns:
+        groups = adata.obs[groupby].map(lambda x: "mask" if x in mask_list else x).values
+    elif groupby in adata.var.index:
+        groups = adata[:, groupby].X.flatten()
+    elif groupby is None:
+        groups = np.array(["same"] * adata.obs.shape[0])
+    else:
+        raise ValueError(
+            "\n`groupby` value is wrong." 
+            "\n`groupby` should be one of adata.obs.columns, or one of adata.var.index"
+        )
+
+    pcd = add_mesh_labels(
+        mesh=pcd,
+        labels=groups,
+        key_added=key_added,
+        colormap=colormap,
+        alphamap=alphamap
+    )
+
+    return pcd
 
 
 def voxelize_pcd(
@@ -86,22 +123,21 @@ def voxelize_pcd(
 def construct_surface(
     pcd: PolyData,
     key_added: str = "groups",
-    mesh_color: Optional[str] = "gainsboro",
-    mesh_alpha: Optional[float] = 0.8,
+    color: Optional[str] = "gainsboro",
+    alpha: Optional[float] = 0.8,
     cs_method: Literal["basic", "slide", "alpha_shape", "ball_pivoting", "poisson"] = "basic",
     cs_method_args: dict = None,
     surface_smoothness: int = 100,
     n_surf: int = 10000,
-    mtype: Literal["polydata", "unstructured"] = "polydata",
-) -> PolyData or UnstructuredGrid:
+) -> Tuple[PolyData, PolyData]:
     """
     Surface mesh reconstruction based on 3D point cloud model.
 
     Args:
         pcd: A point cloud.
         key_added: The key under which to add the labels.
-        mesh_color: Color to use for plotting mesh. The default mesh_color is `'gainsboro'`.
-        mesh_alpha: The opacity of the color to use for plotting mesh. The default mesh_color is `0.8`.
+        color: Color to use for plotting mesh. The default mesh_color is `'gainsboro'`.
+        alpha: The opacity of the color to use for plotting mesh. The default mesh_color is `0.8`.
         cs_method: The methods of creating a surface mesh. Available `cs_method` are:
                 * `'basic'`
                 * `'slide'`
@@ -116,14 +152,14 @@ def construct_surface(
         surface_smoothness: Adjust surface point coordinates using Laplacian smoothing.
                             If smoothness==0, do not smooth the reconstructed surface.
         n_surf: The number of faces obtained using voronoi clustering. The larger the number, the smoother the surface.
-        mtype: The type of the reconstructed surface. Available `mtype` are:
-                * `'polydata'`
-                * `'unstructured'`
-
     Returns:
-        A reconstructed surface mesh, which contains the following properties:
-            `surf[key_added]`, the "surface" array;
-            `surf[f'{key_added}_rgba']`, the rgba colors of mesh.
+        uniform_surf: A reconstructed surface mesh, which contains the following properties:
+            `surf.point_data[key_added]`, the "surface" array;
+            `surf.point_data[f'{key_added}_rgba']`, the rgba colors of the labels.
+        clipped_pcd: A point cloud, which contains the following properties:
+            `clipped_pcd.point_data["obs_index"]`, the obs_index of each coordinate in the original adata.
+            `clipped_pcd.point_data[key_added]`, the `groupby` array;
+            `clipped_pcd.point_data[f'{key_added}_rgba']`, the rgba colors of the labels.
     """
 
     _cs_method_args = {
@@ -228,27 +264,22 @@ def construct_surface(
         mesh=uniform_surf,
         labels=labels,
         key_added=key_added,
-        colormap=mesh_color,
-        alphamap=mesh_alpha
+        colormap=color,
+        alphamap=alpha
     )
 
-    return mesh_type(mesh=uniform_surf, mtype=mtype)
+    # Clip the original pcd using the reconstructed surface and reconstruct new point cloud.
+    clip_invert = True if cs_method in ["basic", "slide"] else False
+    clipped_pcd = pcd.clip_surface(uniform_surf, invert=clip_invert)
 
-
-def clip_pcd(adata: AnnData, pcd: PolyData, surface: PolyData, invert: bool = True) -> Tuple[PolyData, AnnData]:
-    """Clip the original pcd using the reconstructed surface and reconstruct new point cloud."""
-    pcd.point_data["index"] = adata.obs_names.to_numpy()
-    clipped_pcd = pcd.clip_surface(surface, invert=invert)
-    clipped_adata = adata[clipped_pcd.point_data["index"], :]
-
-    return clipped_pcd, clipped_adata
+    return uniform_surf, clipped_pcd
 
 
 def construct_volume(
     mesh: Union[PolyData, UnstructuredGrid],
     key_added: str = "groups",
-    mesh_color: Optional[str] = "gainsboro",
-    mesh_alpha: Optional[float] = 0.8,
+    color: Optional[str] = "gainsboro",
+    alpha: Optional[float] = 0.8,
     volume_smoothness: Optional[int] = 200,
 ) -> UnstructuredGrid:
     """
@@ -257,14 +288,15 @@ def construct_volume(
     Args:
         mesh: A surface mesh.
         key_added: The key under which to add the labels.
-        mesh_color: Color to use for plotting mesh. The default mesh_color is `'gainsboro'`.
-        mesh_alpha: The opacity of the color to use for plotting mesh. The default mesh_color is `0.8`.
+        color: Color to use for plotting mesh. The default mesh_color is `'gainsboro'`.
+        alpha: The opacity of the color to use for plotting mesh. The default mesh_color is `0.8`.
         volume_smoothness: The smoothness of the volumetric mesh.
 
     Returns:
         volume: A reconstructed volumetric mesh, which contains the following properties:
-            `volume[key_added]`, the "volume" array;
-            `volume[f'{key_added}_rgba']`, the rgba colors of volumetric mesh.
+            `volume.point_data[key_added]`, the "volume" array;
+            `volume.point_data[f'{key_added}_rgba']`,  the rgba colors of the labels.
+
     """
 
     density = mesh.length / volume_smoothness
@@ -276,8 +308,8 @@ def construct_volume(
         mesh=volume,
         labels=labels,
         key_added=key_added,
-        colormap=mesh_color,
-        alphamap=mesh_alpha
+        colormap=color,
+        alphamap=alpha
     )
 
     return volume
@@ -305,8 +337,8 @@ def add_mesh_labels(
         mask_alpha: The opacity of the color to use for plotting mask information.
     Returns:
          A mesh, which contains the following properties:
-            `mesh[key_added]`, the labels array;
-            `mesh[f'{key_added}_rgba']`, the rgba colors of the labels.
+            `mesh.point_data[key_added]`, the labels array;
+            `mesh.point_data[f'{key_added}_rgba']`, the rgba colors of the labels.
     """
 
     cu_arr = np.unique(labels)
@@ -342,123 +374,6 @@ def add_mesh_labels(
     mesh.point_data[f"{key_added}_rgba"] = np.array([cu_dict[g] for g in labels]).astype(np.float64)
 
     return mesh
-
-
-def construct_three_d_mesh(
-    adata: AnnData,
-    coordsby: str = "spatial",
-    groupby: Optional[str] = None,
-    key_added: str = "groups",
-    mask: Union[str, int, float, list] = None,
-    mesh_style: Literal["pcd", "surf", "volume"] = "surf",
-    mesh_color: Optional[str] = "gainsboro",
-    mesh_alpha: Optional[float] = 1.0,
-    pcd_cmap: Union[str, list, dict] = "rainbow",
-    pcd_amap: Union[float, list, dict] = 1.0,
-    pcd_voxelize: bool = False,
-    pcd_voxel_size: Optional[list] = None,
-    cs_method: Literal["basic", "slide", "alpha_shape", "ball_pivoting", "poisson"] = "basic",
-    cs_method_args: dict = None,
-    surf_smoothness: int = 100,
-    n_surf: int = 10000,
-    vol_smoothness: Optional[int] = 200,
-) -> Tuple[UnstructuredGrid, UnstructuredGrid or None]:
-    """
-    Reconstruct a voxelized 3D model.
-    Args:
-        adata: AnnData object.
-        coordsby: The key from adata.obsm whose value will be used to reconstruct the 3D structure.
-        groupby: The key of the observations grouping to consider.
-        key_added: The key under which to add the labels.
-        mask: The part that you don't want to be displayed.
-        mesh_style: The style of the reconstructed mesh. Available `mesh_style` are:
-                * `'pcd'`
-                * `'surface'`
-                * `'volume'`
-        mesh_color: Color to use for plotting mesh. The default mesh_color is `'gainsboro'`.
-        mesh_alpha: The opacity of the color to use for plotting mesh. The default mesh_color is `0.5`.
-        pcd_cmap: Colors to use for plotting pcd. The default pcd_cmap is `'rainbow'`.
-        pcd_amap: The opacity of the colors to use for plotting pcd. The default pcd_amap is `1.0`.
-        pcd_voxelize: Voxelize the point cloud.
-        pcd_voxel_size: The size of the voxelized points. A list of three elements.
-        cs_method: The methods of creating a surface mesh. Available `cs_method` are:
-                * `'basic'`
-                * `'slide'`
-                * `'alpha_shape'`
-                * `'ball_pivoting'`
-                * `'poisson'`
-        cs_method_args: Parameters for various surface reconstruction methods. Available `cs_method_args` are:
-                * `'slide'` method: {"n_slide": 3}
-                * `'alpha_shape'` method: {"al_alpha": 10}
-                * `'ball_pivoting'` method: {"ba_radii": [1, 1, 1, 1]}
-                * `'poisson'` method: {"po_depth": 5, "po_threshold": 0.1}
-        surf_smoothness: Adjust surface point coordinates using Laplacian smoothing.
-                         If surf_smoothness==0, do not smooth the reconstructed surface.
-        n_surf: The number of faces obtained using voronoi clustering. The larger the n_surf, the smoother the surface.
-                Only valid when smoothing is True.
-        vol_smoothness: The smoothness of the volumetric mesh.
-    Returns:
-        pcd: Reconstructed 3D point cloud, which contains the following properties:
-            `pcd[key_added]`, the data which under the groupby;
-            `pcd[f'{key_added}_rgba']`, the rgba colors of pcd.
-        mesh: Reconstructed surface mesh or volumetric mesh, which contains the following properties:
-            `mesh[key_added]`, the "mask" array;
-            `mesh[f'{key_added}_rgba']`, the rgba colors of mesh.
-    """
-
-    # Reconstruct a point cloud, surface or volumetric mesh.
-    pcd = construct_pcd(adata=adata, coordsby=coordsby, mtype="polydata", coodtype=np.float64)
-
-    if mesh_style == "pcd":
-        surface = None
-    else:
-        surface = construct_surface(
-            pcd=pcd,
-            key_added=key_added,
-            mesh_color=mesh_color,
-            mesh_alpha=mesh_alpha,
-            cs_method=cs_method,
-            cs_method_args=cs_method_args,
-            surface_smoothness=surf_smoothness,
-            n_surf=n_surf,
-            mtype="polydata",
-        )
-        clip_invert = True if cs_method in ["basic", "slide"] else False
-        pcd, adata = clip_pcd(adata=adata, pcd=pcd, surface=surface, invert=clip_invert)
-        surface = mesh_type(surface, mtype="unstructured")
-
-    mesh = construct_volume(
-        mesh=surface,
-        key_added=key_added,
-        mesh_color=mesh_color,
-        mesh_alpha=mesh_alpha,
-        volume_smoothness=vol_smoothness
-    ) if mesh_style == "volume" else surface
-
-    # add `groupby` data to pcd
-    mask_list = mask if isinstance(mask, list) else [mask]
-
-    if groupby in adata.obs.columns:
-        groups = adata.obs[groupby].map(lambda x: "mask" if x in mask_list else x).values
-    elif groupby in adata.var.index:
-        groups = adata[:, groupby].X.flatten()
-    elif groupby is None:
-        groups = np.array(["same"] * adata.obs.shape[0])
-    else:
-        raise ValueError(
-            "\n`groupby` value is wrong." "\n`groupby` should be one of adata.obs.columns, or one of adata.var.index\n"
-        )
-
-    pcd = voxelize_pcd(pcd=pcd, voxel_size=pcd_voxel_size) if pcd_voxelize else mesh_type(pcd, mtype="unstructured")
-    pcd = add_mesh_labels(
-        mesh=pcd,
-        labels=groups,
-        key_added=key_added,
-        colormap=pcd_cmap,
-        alphamap=pcd_amap
-    )
-
-    return pcd, mesh
 
 
 def merge_mesh(
@@ -499,3 +414,41 @@ def collect_mesh(
     return pv.MultiBlock(meshes)
 
 
+def save_mesh(
+    mesh: DataSet,
+    filename: str,
+    binary: bool = True,
+    texture: Union[str, np.ndarray] = None,
+):
+    """
+    Save the pvvista/vtk mesh to vtk files.
+    Args:
+        mesh: A reconstructed mesh.
+        filename: Filename of output file. Writer type is inferred from the extension of the filename.
+        binary: If True, write as binary. Otherwise, write as ASCII. Binary files write much faster than ASCII and have a smaller file size.
+        texture: Write a single texture array to file when using a PLY file.
+                 Texture array must be a 3 or 4 component array with the datatype np.uint8.
+                 Array may be a cell array or a point array, and may also be a string if the array already exists in the PolyData.
+                 If a string is provided, the texture array will be saved to disk as that name.
+                 If an array is provided, the texture array will be saved as 'RGBA'
+    """
+
+    if filename.endswith(".vtk"):
+        mesh.save(filename=filename, binary=binary, texture=texture)
+    else:
+        raise ValueError(
+            "\nFilename is wrong. This function is only available when saving vtk files."
+            "\nPlease enter a filename ending with `.vtk`."
+        )
+
+
+def read_vtk(filename: str) -> DataSet:
+    """
+    Read vtk file.
+    Args:
+        filename: The string path to the file to read.
+    Returns:
+        Wrapped PyVista dataset.
+    """
+
+    return pv.read(filename)
