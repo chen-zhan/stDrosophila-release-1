@@ -6,11 +6,10 @@ import pyacvd
 import pymeshfix as mf
 import pyvista as pv
 import PVGeo
-import seaborn as sns
 
 from anndata import AnnData
 from pandas.core.frame import DataFrame
-from pyvista import PolyData, UnstructuredGrid, MultiBlock, DataSet
+from pyvista import PolyData, UnstructuredGrid, MultiBlock
 from typing import Optional, Tuple, Union, List
 
 try:
@@ -123,7 +122,7 @@ def construct_surface(
 
     Returns:
         A reconstructed surface mesh, which contains the following properties:
-            `surf[key_added]`, the "mask" array;
+            `surf[key_added]`, the "surface" array;
             `surf[f'{key_added}_rgba']`, the rgba colors of mesh.
     """
 
@@ -224,10 +223,14 @@ def construct_surface(
     uniform_surf = clustered.create_mesh()
 
     # Add labels and the colormap of the surface mesh
-    uniform_surf.point_data[key_added] = np.array(["mask"] * uniform_surf.n_points).astype(str)
-    uniform_surf.point_data[f"{key_added}_rgba"] = np.array(
-        [mpl.colors.to_rgba(mesh_color, alpha=mesh_alpha)] * uniform_surf.n_points
-    ).astype(np.float64)
+    labels = np.array(["surface"] * uniform_surf.n_points).astype(str)
+    uniform_surf = add_mesh_labels(
+        mesh=uniform_surf,
+        labels=labels,
+        key_added=key_added,
+        colormap=mesh_color,
+        alphamap=mesh_alpha
+    )
 
     return mesh_type(mesh=uniform_surf, mtype=mtype)
 
@@ -248,7 +251,8 @@ def construct_volume(
     mesh_alpha: Optional[float] = 0.8,
     volume_smoothness: Optional[int] = 200,
 ) -> UnstructuredGrid:
-    """Construct a volumetric mesh based on surface mesh.
+    """
+    Construct a volumetric mesh based on surface mesh.
 
     Args:
         mesh: A surface mesh.
@@ -259,33 +263,38 @@ def construct_volume(
 
     Returns:
         volume: A reconstructed volumetric mesh, which contains the following properties:
-            `volume[key_added]`, the "mask" array;
-            `volume[f'{key_added}_rgba']`, the rgba colors of mesh.
+            `volume[key_added]`, the "volume" array;
+            `volume[f'{key_added}_rgba']`, the rgba colors of volumetric mesh.
     """
 
     density = mesh.length / volume_smoothness
     volume = pv.voxelize(mesh, density=density, check_surface=False)
 
-    # Add labels and the colormap of the surface mesh
-    volume.point_data[key_added] = np.array(["mask"] * volume.n_points).astype(str)
-    volume.point_data[f"{key_added}_rgba"] = np.array(
-        [mpl.colors.to_rgba(mesh_color, alpha=mesh_alpha)] * volume.n_points
-    ).astype(np.float64)
+    # Add labels and the colormap of the volumetric mesh
+    labels = np.array(["volume"] * volume.n_points).astype(str)
+    volume = add_mesh_labels(
+        mesh=volume,
+        labels=labels,
+        key_added=key_added,
+        colormap=mesh_color,
+        alphamap=mesh_alpha
+    )
 
     return volume
 
 
 def add_mesh_labels(
-    mesh: DataSet,
+    mesh: Union[PolyData, UnstructuredGrid],
     labels: np.ndarray,
     key_added: str = "groups",
-    colormap: Union[str, list, dict] = None,
-    alphamap: Union[float, list, dict] = None,
-    mask_color: Optional[str] = None,
-    mask_alpha: Optional[float] = None,
-) -> DataSet:
+    colormap: Union[str, list] = None,
+    alphamap: Union[float, list] = None,
+    mask_color: Optional[str] = "gainsboro",
+    mask_alpha: Optional[float] = 0,
+) -> PolyData or UnstructuredGrid:
     """
-    Set the color of groups or gene expression.
+    Add rgba color to each point of mesh based on labels.
+
     Args:
         mesh: A reconstructed mesh.
         labels: An array of labels of interest.
@@ -295,7 +304,9 @@ def add_mesh_labels(
         mask_color: Color to use for plotting mask information.
         mask_alpha: The opacity of the color to use for plotting mask information.
     Returns:
-        The rgba values mapped to groups or gene expression.
+         A mesh, which contains the following properties:
+            `mesh[key_added]`, the labels array;
+            `mesh[f'{key_added}_rgba']`, the rgba colors of the labels.
     """
 
     cu_arr = np.unique(labels)
@@ -308,24 +319,23 @@ def add_mesh_labels(
         cu_arr = np.delete(cu_arr, mask_ind[0])
         cu_dict["mask"] = mpl.colors.to_rgba(mask_color, alpha=mask_alpha)
 
-    # Set alpha.
-    if isinstance(alphamap, float) or isinstance(alphamap, int):
-        alphamap = {t: alphamap for t in cu_arr}
-    elif isinstance(alphamap, list):
-        alphamap = {t: alpha for t, alpha in zip(cu_arr, alphamap)}
+    cu_arr_num = cu_arr.shape[0]
+    if cu_arr_num != (0,):
+        # Set alpha.
+        alpha_list = alphamap if isinstance(alphamap, list) else [alphamap] * cu_arr_num
 
-    # Set rgb.
-    if isinstance(colormap, str):
-        colormap = [
-            mpl.colors.to_hex(i, keep_alpha=False)
-            for i in sns.color_palette(palette=colormap, n_colors=len(cu_arr), as_cmap=False)
-        ]
-    if isinstance(colormap, list):
-        colormap = {t: color for t, color in zip(cu_arr, colormap)}
+        # Set raw rgba.
+        if isinstance(colormap, list):
+            raw_rgba_list = [mpl.colors.to_rgba(color) for color in colormap]
+        elif colormap in list(mpl.colormaps):
+            lscmap = mpl.cm.get_cmap(colormap)
+            raw_rgba_list = [lscmap(i) for i in np.linspace(0, 1, cu_arr_num)]
+        else:
+            raw_rgba_list = [mpl.colors.to_rgba(colormap)] * cu_arr_num
 
-    # Set rgba.
-    for t in cu_arr:
-        cu_dict[t] = mpl.colors.to_rgba(colormap[t], alpha=alphamap[t])
+        # Set new rgba.
+        for t, c, a in zip(cu_arr, raw_rgba_list, alpha_list):
+            cu_dict[t] = mpl.colors.to_rgba(c, alpha=a)
 
     # Added labels and rgba of the labels
     mesh.point_data[key_added] = labels
@@ -425,8 +435,9 @@ def construct_three_d_mesh(
         volume_smoothness=vol_smoothness
     ) if mesh_style == "volume" else surface
 
-    # add `groupby` data
+    # add `groupby` data to pcd
     mask_list = mask if isinstance(mask, list) else [mask]
+
     if groupby in adata.obs.columns:
         groups = adata.obs[groupby].map(lambda x: "mask" if x in mask_list else x).values
     elif groupby in adata.var.index:
@@ -438,8 +449,14 @@ def construct_three_d_mesh(
             "\n`groupby` value is wrong." "\n`groupby` should be one of adata.obs.columns, or one of adata.var.index\n"
         )
 
-    # pcd
     pcd = voxelize_pcd(pcd=pcd, voxel_size=pcd_voxel_size) if pcd_voxelize else mesh_type(pcd, mtype="unstructured")
+    pcd = add_mesh_labels(
+        mesh=pcd,
+        labels=groups,
+        key_added=key_added,
+        colormap=pcd_cmap,
+        alphamap=pcd_amap
+    )
 
     return pcd, mesh
 
