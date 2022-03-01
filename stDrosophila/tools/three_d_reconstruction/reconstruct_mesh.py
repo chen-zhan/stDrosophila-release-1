@@ -10,7 +10,7 @@ import seaborn as sns
 
 from anndata import AnnData
 from pandas.core.frame import DataFrame
-from pyvista import PolyData, UnstructuredGrid, MultiBlock
+from pyvista import PolyData, UnstructuredGrid, MultiBlock, DataSet
 from typing import Optional, Tuple, Union, List
 
 try:
@@ -86,6 +86,9 @@ def voxelize_pcd(
 
 def construct_surface(
     pcd: PolyData,
+    key_added: str = "groups",
+    mesh_color: Optional[str] = "gainsboro",
+    mesh_alpha: Optional[float] = 0.8,
     cs_method: Literal["basic", "slide", "alpha_shape", "ball_pivoting", "poisson"] = "basic",
     cs_method_args: dict = None,
     surface_smoothness: int = 100,
@@ -97,6 +100,9 @@ def construct_surface(
 
     Args:
         pcd: A point cloud.
+        key_added: The key under which to add the labels.
+        mesh_color: Color to use for plotting mesh. The default mesh_color is `'gainsboro'`.
+        mesh_alpha: The opacity of the color to use for plotting mesh. The default mesh_color is `0.8`.
         cs_method: The methods of creating a surface mesh. Available `cs_method` are:
                 * `'basic'`
                 * `'slide'`
@@ -116,7 +122,9 @@ def construct_surface(
                 * `'unstructured'`
 
     Returns:
-        A surface mesh.
+        A reconstructed surface mesh, which contains the following properties:
+            `surf[key_added]`, the "mask" array;
+            `surf[f'{key_added}_rgba']`, the rgba colors of mesh.
     """
 
     _cs_method_args = {
@@ -139,7 +147,7 @@ def construct_surface(
         z_data = pd.Series(pcd.points[:, 2])
         layers = np.unique(z_data.tolist())
         n_layer_groups = len(layers) - n_slide + 1
-        layer_groups = [layers[i : i + n_slide] for i in range(n_layer_groups)]
+        layer_groups = [layers[i: i + n_slide] for i in range(n_layer_groups)]
 
         points = np.empty(shape=[0, 3])
         for layer_group in layer_groups:
@@ -215,6 +223,12 @@ def construct_surface(
     clustered.cluster(n_surf)
     uniform_surf = clustered.create_mesh()
 
+    # Add labels and the colormap of the surface mesh
+    uniform_surf.point_data[key_added] = np.array(["mask"] * uniform_surf.n_points).astype(str)
+    uniform_surf.point_data[f"{key_added}_rgba"] = np.array(
+        [mpl.colors.to_rgba(mesh_color, alpha=mesh_alpha)] * uniform_surf.n_points
+    ).astype(np.float64)
+
     return mesh_type(mesh=uniform_surf, mtype=mtype)
 
 
@@ -229,35 +243,53 @@ def clip_pcd(adata: AnnData, pcd: PolyData, surface: PolyData, invert: bool = Tr
 
 def construct_volume(
     mesh: Union[PolyData, UnstructuredGrid],
+    key_added: str = "groups",
+    mesh_color: Optional[str] = "gainsboro",
+    mesh_alpha: Optional[float] = 0.8,
     volume_smoothness: Optional[int] = 200,
 ) -> UnstructuredGrid:
     """Construct a volumetric mesh based on surface mesh.
 
     Args:
         mesh: A surface mesh.
+        key_added: The key under which to add the labels.
+        mesh_color: Color to use for plotting mesh. The default mesh_color is `'gainsboro'`.
+        mesh_alpha: The opacity of the color to use for plotting mesh. The default mesh_color is `0.8`.
         volume_smoothness: The smoothness of the volumetric mesh.
 
     Returns:
-        A volumetric mesh.
+        volume: A reconstructed volumetric mesh, which contains the following properties:
+            `volume[key_added]`, the "mask" array;
+            `volume[f'{key_added}_rgba']`, the rgba colors of mesh.
     """
 
     density = mesh.length / volume_smoothness
     volume = pv.voxelize(mesh, density=density, check_surface=False)
 
+    # Add labels and the colormap of the surface mesh
+    volume.point_data[key_added] = np.array(["mask"] * volume.n_points).astype(str)
+    volume.point_data[f"{key_added}_rgba"] = np.array(
+        [mpl.colors.to_rgba(mesh_color, alpha=mesh_alpha)] * volume.n_points
+    ).astype(np.float64)
+
     return volume
 
 
-def three_d_color(
-    arr: np.ndarray,
+def add_mesh_labels(
+    mesh: DataSet,
+    labels: np.ndarray,
+    key_added: str = "groups",
     colormap: Union[str, list, dict] = None,
     alphamap: Union[float, list, dict] = None,
     mask_color: Optional[str] = None,
     mask_alpha: Optional[float] = None,
-) -> np.ndarray:
+) -> DataSet:
     """
     Set the color of groups or gene expression.
     Args:
-        arr: NumPy ndarray.
+        mesh: A reconstructed mesh.
+        labels: An array of labels of interest.
+        key_added: The key under which to add the labels.
         colormap: Colors to use for plotting data.
         alphamap: The opacity of the color to use for plotting data.
         mask_color: Color to use for plotting mask information.
@@ -266,7 +298,7 @@ def three_d_color(
         The rgba values mapped to groups or gene expression.
     """
 
-    cu_arr = np.unique(arr)
+    cu_arr = np.unique(labels)
     cu_arr = np.sort(cu_arr, axis=0)
     cu_dict = {}
 
@@ -295,7 +327,11 @@ def three_d_color(
     for t in cu_arr:
         cu_dict[t] = mpl.colors.to_rgba(colormap[t], alpha=alphamap[t])
 
-    return np.array([cu_dict[g] for g in arr])
+    # Added labels and rgba of the labels
+    mesh.point_data[key_added] = labels
+    mesh.point_data[f"{key_added}_rgba"] = np.array([cu_dict[g] for g in labels]).astype(np.float64)
+
+    return mesh
 
 
 def construct_three_d_mesh(
@@ -304,7 +340,7 @@ def construct_three_d_mesh(
     groupby: Optional[str] = None,
     key_added: str = "groups",
     mask: Union[str, int, float, list] = None,
-    mesh_style: Literal["pcd", "surf", "volume"] = "volume",
+    mesh_style: Literal["pcd", "surf", "volume"] = "surf",
     mesh_color: Optional[str] = "gainsboro",
     mesh_alpha: Optional[float] = 1.0,
     pcd_cmap: Union[str, list, dict] = "rainbow",
@@ -368,6 +404,9 @@ def construct_three_d_mesh(
     else:
         surface = construct_surface(
             pcd=pcd,
+            key_added=key_added,
+            mesh_color=mesh_color,
+            mesh_alpha=mesh_alpha,
             cs_method=cs_method,
             cs_method_args=cs_method_args,
             surface_smoothness=surf_smoothness,
@@ -376,8 +415,15 @@ def construct_three_d_mesh(
         )
         clip_invert = True if cs_method in ["basic", "slide"] else False
         pcd, adata = clip_pcd(adata=adata, pcd=pcd, surface=surface, invert=clip_invert)
+        surface = mesh_type(surface, mtype="unstructured")
 
-    mesh = construct_volume(mesh=surface, volume_smoothness=vol_smoothness) if mesh_style == "volume" else surface
+    mesh = construct_volume(
+        mesh=surface,
+        key_added=key_added,
+        mesh_color=mesh_color,
+        mesh_alpha=mesh_alpha,
+        volume_smoothness=vol_smoothness
+    ) if mesh_style == "volume" else surface
 
     # add `groupby` data
     mask_list = mask if isinstance(mask, list) else [mask]
@@ -394,38 +440,6 @@ def construct_three_d_mesh(
 
     # pcd
     pcd = voxelize_pcd(pcd=pcd, voxel_size=pcd_voxel_size) if pcd_voxelize else mesh_type(pcd, mtype="unstructured")
-
-    pcd.point_data[key_added] = groups
-    pcd.point_data[f"{key_added}_rgba"] = three_d_color(
-        arr=groups,
-        colormap=pcd_cmap,
-        alphamap=pcd_amap,
-        mask_color="gainsboro",
-        mask_alpha=0,
-    ).astype(np.float64)
-
-    pcd.cell_data[key_added] = groups
-    pcd.cell_data[f"{key_added}_rgba"] = three_d_color(
-        arr=groups,
-        colormap=pcd_cmap,
-        alphamap=pcd_amap,
-        mask_color="gainsboro",
-        mask_alpha=0,
-    ).astype(np.float64)
-
-    # surface mesh or volumetric mesh
-    if mesh is not None:
-        mesh = mesh_type(mesh, mtype="unstructured")
-
-        mesh.point_data[key_added] = np.array(["mask"] * mesh.n_points).astype(str)
-        mesh.point_data[f"{key_added}_rgba"] = np.array(
-            [mpl.colors.to_rgba(mesh_color, alpha=mesh_alpha)] * mesh.n_points
-        ).astype(np.float64)
-
-        mesh.cell_data[key_added] = np.array(["mask"] * mesh.n_cells).astype(str)
-        mesh.cell_data[f"{key_added}_rgba"] = np.array(
-            [mpl.colors.to_rgba(mesh_color, alpha=mesh_alpha)] * mesh.n_cells
-        ).astype(np.float64)
 
     return pcd, mesh
 
@@ -448,7 +462,8 @@ def collect_mesh(
 ) -> MultiBlock:
     """
     A composite class to hold many data sets which can be iterated over.
-    You can think of MultiBlock like lists or dictionaries as we can iterate over this data structure by index and we can also access blocks by their string name.
+    You can think of MultiBlock like lists or dictionaries as we can iterate over this data structure by index
+    and we can also access blocks by their string name.
 
     If the input is a dictionary, it can be iterated in the following ways:
         >>> blocks = collect_mesh(meshes, meshes_name)
@@ -467,29 +482,3 @@ def collect_mesh(
     return pv.MultiBlock(meshes)
 
 
-def mesh_to_vtk(
-    mesh: Union[PolyData, UnstructuredGrid],
-    filename: str,
-    binary: bool = True,
-    texture: Union[str, np.ndarray] = None,
-):
-    """
-    Save the vtk object to vtk files.
-    Args:
-        mesh: A reconstructed mesh.
-        filename: Filename of output file. Writer type is inferred from the extension of the filename.
-        binary: If True, write as binary. Otherwise, write as ASCII. Binary files write much faster than ASCII and have a smaller file size.
-        texture: Write a single texture array to file when using a PLY file.
-                 Texture array must be a 3 or 4 component array with the datatype np.uint8.
-                 Array may be a cell array or a point array, and may also be a string if the array already exists in the PolyData.
-                 If a string is provided, the texture array will be saved to disk as that name.
-                 If an array is provided, the texture array will be saved as 'RGBA'
-    """
-
-    if filename.endswith(".vtk"):
-        mesh.save(filename=filename, binary=binary, texture=texture)
-    else:
-        raise ValueError(
-            "\nFilename is wrong. This function is only available when saving vtk files."
-            "\nPlease enter a filename ending with `.vtk`."
-        )
