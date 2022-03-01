@@ -78,7 +78,8 @@ def three_d_pick(
             callback=split_mesh,
             show=False,
             font_size=12,
-            show_message="Press `r` to enable retangle based selection. Press `r` again to turn it off. ",
+            show_message="Press `r` to enable retangle based selection. Press `r` again to turn it off. \n"
+                         "Press `q` to exit the interactive window. ",
         )
         p.show()
         picked_meshes = [invert_meshes[0]] if invert else picked_meshes
@@ -88,8 +89,8 @@ def three_d_pick(
         p.show()
         picked_meshes = p.box_clipped_meshes
 
-    p = pv.Plotter()
-    p.add_mesh()
+    # plot final picked meshes
+    pv.plot(picked_meshes)
 
     if merge:
         return merge_mesh(picked_meshes) if len(picked_meshes) > 1 else picked_meshes[0]
