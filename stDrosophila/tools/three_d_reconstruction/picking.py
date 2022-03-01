@@ -88,6 +88,9 @@ def three_d_pick(
         p.show()
         picked_meshes = p.box_clipped_meshes
 
+    p = pv.Plotter()
+    p.add_mesh()
+
     if merge:
         return merge_mesh(picked_meshes) if len(picked_meshes) > 1 else picked_meshes[0]
     else:
