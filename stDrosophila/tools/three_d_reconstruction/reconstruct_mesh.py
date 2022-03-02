@@ -61,9 +61,9 @@ def construct_pcd(
 
     Returns:
         pcd: A point cloud, which contains the following properties:
-            `pcd.point_data["obs_index"]`, the obs_index of each coordinate in the original adata.
-            `pcd.point_data[key_added]`, the key of pcd.point_data which stores `groupby` information.
-            `pcd.point_data[f'{key_added}_rgba']`, the rgba colors of the `groupby` information.
+            `pcd.cell_data["obs_index"]`, the obs_index of each coordinate in the original adata.
+            `pcd.cell_data[key_added]`, the key of pcd.point_data which stores `groupby` information.
+            `pcd.cell_data[f'{key_added}_rgba']`, the rgba colors of the `groupby` information.
     """
 
     # create an initial pcd.
@@ -73,7 +73,7 @@ def construct_pcd(
     pcd = pv.PolyData(bucket_xyz)
 
     # The obs_index of each coordinate in the original adata.
-    pcd.point_data["obs_index"] = adata.obs_names.to_numpy()
+    pcd.cell_data["obs_index"] = adata.obs_names.to_numpy()
 
     # The`groupby` array in original adata.obs or adata.X
     mask_list = mask if isinstance(mask, list) else [mask]
@@ -114,7 +114,7 @@ def voxelize_pcd(
         pcd: A point cloud.
         voxel_size: The size of the voxelized points. A list of three elements.
     Returns:
-        A voxelized point cloud.
+        v_pcd: A voxelized point cloud.
     """
 
     voxel_size = [1, 1, 1] if voxel_size is None else voxel_size
@@ -122,8 +122,13 @@ def voxelize_pcd(
     voxelizer = PVGeo.filters.VoxelizePoints()
     voxelizer.set_deltas(voxel_size[0], voxel_size[1], voxel_size[2])
     voxelizer.set_estimate_grid(False)
+    v_pcd = voxelizer.apply(pcd)
 
-    return voxelizer.apply(pcd)
+    # add labels
+    for key in pcd.array_names:
+        v_pcd.cell_data[key] = pcd.cell_data[key]
+
+    return v_pcd
 
 
 def construct_surface(
@@ -162,12 +167,12 @@ def construct_surface(
         n_surf: The number of faces obtained using voronoi clustering. The larger the number, the smoother the surface.
     Returns:
         uniform_surf: A reconstructed surface mesh, which contains the following properties:
-            `surf.point_data[key_added]`, the "surface" array;
-            `surf.point_data[f'{key_added}_rgba']`, the rgba colors of the "surface" array.
+            `surf.cell_data[key_added]`, the "surface" array;
+            `surf.cell_data[f'{key_added}_rgba']`, the rgba colors of the "surface" array.
         clipped_pcd: A point cloud, which contains the following properties:
-            `clipped_pcd.point_data["obs_index"]`, the obs_index of each coordinate in the original adata.
-            `clipped_pcd.point_data[key_added]`, store `groupby` information.
-            `clipped_pcd.point_data[f'{key_added}_rgba']`, the rgba colors of the `groupby` information.
+            `clipped_pcd.cell_data["obs_index"]`, the obs_index of each coordinate in the original adata.
+            `clipped_pcd.cell_data[key_added]`, store `groupby` information.
+            `clipped_pcd.cell_data[f'{key_added}_rgba']`, the rgba colors of the `groupby` information.
     """
 
     _cs_method_args = {
@@ -281,7 +286,7 @@ def construct_surface(
     uniform_surf = clustered.create_mesh()
 
     # Add labels and the colormap of the surface mesh
-    labels = np.array(["surface"] * uniform_surf.n_points).astype(str)
+    labels = np.array(["surface"] * uniform_surf.n_cells).astype(str)
     uniform_surf = add_mesh_labels(
         mesh=uniform_surf,
         labels=labels,
@@ -316,8 +321,8 @@ def construct_volume(
 
     Returns:
         volume: A reconstructed volumetric mesh, which contains the following properties:
-            `volume.point_data[key_added]`, the "volume" array;
-            `volume.point_data[f'{key_added}_rgba']`,  the rgba colors of the "volume" array.
+            `volume.cell_data[key_added]`, the "volume" array;
+            `volume.cell_data[f'{key_added}_rgba']`,  the rgba colors of the "volume" array.
 
     """
 
@@ -325,7 +330,7 @@ def construct_volume(
     volume = pv.voxelize(mesh, density=density, check_surface=False)
 
     # Add labels and the colormap of the volumetric mesh
-    labels = np.array(["volume"] * volume.n_points).astype(str)
+    labels = np.array(["volume"] * volume.n_cells).astype(str)
     volume = add_mesh_labels(
         mesh=volume, labels=labels, key_added=key_added, colormap=color, alphamap=alpha
     )
@@ -355,8 +360,8 @@ def add_mesh_labels(
         mask_alpha: The opacity of the color to use for plotting mask information.
     Returns:
          A mesh, which contains the following properties:
-            `mesh.point_data[key_added]`, the labels array;
-            `mesh.point_data[f'{key_added}_rgba']`, the rgba colors of the labels.
+            `mesh.cell_data[key_added]`, the labels array;
+            `mesh.cell_data[f'{key_added}_rgba']`, the rgba colors of the labels.
     """
 
     cu_arr = np.unique(labels)
@@ -388,8 +393,8 @@ def add_mesh_labels(
             cu_dict[t] = mpl.colors.to_rgba(c, alpha=a)
 
     # Added labels and rgba of the labels
-    mesh.point_data[key_added] = labels
-    mesh.point_data[f"{key_added}_rgba"] = np.array(
+    mesh.cell_data[key_added] = labels
+    mesh.cell_data[f"{key_added}_rgba"] = np.array(
         [cu_dict[g] for g in labels]
     ).astype(np.float64)
 

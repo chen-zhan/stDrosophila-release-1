@@ -15,7 +15,7 @@ except ImportError:
 
 def create_plotter(
     mesh: Union[PolyData, UnstructuredGrid, MultiBlock],
-    key: str = "groups",
+    key: str = None,
     off_screen: bool = False,
     window_size: tuple = (1024, 768),
     background: str = "white",
@@ -81,57 +81,68 @@ def create_plotter(
 
     # Add a mesh to the plotter.
     mesh_style = "points" if style == "points" else None
-    plotter.add_mesh(
-        mesh,
-        scalars=f"{key}_rgba",
-        rgba=True,
-        render_points_as_spheres=True,
-        style=mesh_style,
-        point_size=point_size,
-        ambient=ambient,
-        opacity=opacity,
-    )
+    if key is None:
+        plotter.add_mesh(
+            mesh,
+            render_points_as_spheres=True,
+            style=mesh_style,
+            point_size=point_size,
+            ambient=ambient,
+            opacity=opacity,
+        )
+    else:
+        plotter.add_mesh(
+            mesh,
+            scalars=f"{key}_rgba",
+            rgba=True,
+            render_points_as_spheres=True,
+            style=mesh_style,
+            point_size=point_size,
+            ambient=ambient,
+            opacity=opacity,
+        )
 
     # Add a camera orientation widget to the plotter.
     plotter.add_camera_orientation_widget()
 
     # Add a legend to the plotter.
-    _label = pd.Series(mesh[key])
-    _hex = pd.Series([mpl.colors.to_hex(i) for i in mesh[f"{key}_rgba"]])
+    if key is not None:
+        _label = pd.Series(mesh[key])
+        _hex = pd.Series([mpl.colors.to_hex(i) for i in mesh[f"{key}_rgba"]])
 
-    _legend_data = pd.concat([_label, _hex], axis=1)
-    _legend_data.columns = ["label", "hex"]
-    _legend_data = _legend_data[_legend_data["label"] != "mask"]
-    _legend_data.drop_duplicates(inplace=True)
+        _legend_data = pd.concat([_label, _hex], axis=1)
+        _legend_data.columns = ["label", "hex"]
+        _legend_data = _legend_data[_legend_data["label"] != "mask"]
+        _legend_data.drop_duplicates(inplace=True)
 
-    if len(_legend_data.index) != 0:
-        _legend_data.sort_values(by=["label", "hex"], inplace=True)
-        _legend_data = _legend_data.astype(str)
+        if len(_legend_data.index) != 0:
+            _legend_data.sort_values(by=["label", "hex"], inplace=True)
+            _legend_data = _legend_data.astype(str)
 
-        try:
-            _label_new = _legend_data["label"]
-            _label_new = _label_new.astype(float)
-            _label_type = "float"
-        except:
-            _label_type = "str"
+            try:
+                _label_new = _legend_data["label"]
+                _label_new = _label_new.astype(float)
+                _label_type = "float"
+            except:
+                _label_type = "str"
 
-        gap = math.ceil(len(_legend_data.index) / 5) if _label_type == "float" else 1
-        legend_entries = [
-            [_legend_data["label"].iloc[i], _legend_data["hex"].iloc[i]]
-            for i in range(0, len(_legend_data.index), gap)
-        ]
-        if _label_type == "float":
-            legend_entries.append(
-                [_legend_data["label"].iloc[-1], _legend_data["hex"].iloc[-1]]
+            gap = math.ceil(len(_legend_data.index) / 5) if _label_type == "float" else 1
+            legend_entries = [
+                [_legend_data["label"].iloc[i], _legend_data["hex"].iloc[i]]
+                for i in range(0, len(_legend_data.index), gap)
+            ]
+            if _label_type == "float":
+                legend_entries.append(
+                    [_legend_data["label"].iloc[-1], _legend_data["hex"].iloc[-1]]
+                )
+
+            plotter.add_legend(
+                legend_entries,
+                face="circle",
+                bcolor=None,
+                loc=legend_loc,
+                size=legend_size,
             )
-
-        plotter.add_legend(
-            legend_entries,
-            face="circle",
-            bcolor=None,
-            loc=legend_loc,
-            size=legend_size,
-        )
 
     return plotter
 
@@ -230,7 +241,7 @@ def save_plotter(
 
 def three_d_plot(
     mesh: Union[PolyData, UnstructuredGrid, MultiBlock],
-    key: str,
+    key: str = None,
     filename: Optional[str] = None,
     jupyter: bool = False,
     off_screen: bool = False,
@@ -338,13 +349,13 @@ def three_d_plot(
         text_rgb = (1 - bg_rgb[0], 1 - bg_rgb[1], 1 - bg_rgb[2])
         p1.add_text(
             "The way to control 3D images in jupyter notebook is as follows:"
-            "   CTRL Left Mouse spins the camera around its view plane normal;"
-            "   SHIFT Left Mouse pans the camera; "
-            "   CTRL SHIFT Left Mouse dollies (a positional zoom) the camera;"
-            "   Left mouse button dollies the camera."
-            "Tips: Widgets cannot be used in jupyter notebook. "
-            "      To use widgets, please use them in edition (such as PyCharm).",
-            font_size=12, color=text_rgb,
+            "\n\t\tCTRL Left Mouse spins the camera around its view plane normal;"
+            "\n\t\tSHIFT Left Mouse pans the camera; "
+            "\n\t\tCTRL SHIFT Left Mouse dollies (a positional zoom) the camera;"
+            "\n\t\tLeft mouse button dollies the camera."
+            "\nTips: Widgets cannot be used in jupyter notebook. "
+            "\n\t\tTo use widgets, please use them in edition (such as PyCharm).",
+            font_size=12, color=text_rgb, font="arial"
         )
     else:
         jupyter_backend = None
