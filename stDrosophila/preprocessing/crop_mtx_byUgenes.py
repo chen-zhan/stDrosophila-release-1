@@ -1,11 +1,7 @@
 import io
 import gzip
-import os
 import pandas as pd
 import numpy as np
-import scanpy as sc
-import matplotlib.pyplot as plt
-import seaborn as sns
 from skimage import morphology
 import skimage.filters as filters
 from sklearn.covariance import EllipticEnvelope

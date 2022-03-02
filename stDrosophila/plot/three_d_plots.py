@@ -18,8 +18,7 @@ def create_plotter(
     key: str = "groups",
     off_screen: bool = False,
     window_size: tuple = (1024, 768),
-    background: str = "black",
-    background_r: str = "white",
+    background: str = "white",
     ambient: float = 0.3,
     opacity: float = 1.0,
     initial_cpo: Union[str, tuple, list] = "iso",
@@ -44,7 +43,6 @@ def create_plotter(
         off_screen: Renders off screen when True. Useful for automated screenshots.
         window_size: Window size in pixels. The default window_size is `[1024, 768]`.
         background: The background color of the window.
-        background_r: A color that is clearly different from the background color.
         ambient: When lighting is enabled, this is the amount of light in the range of 0 to 1 (default 0.0) that reaches
                  the actor when not directed at the light source emitted from the viewer.
         opacity: Opacity of the mesh. If a single float value is given, it will be the global opacity of the mesh and
@@ -72,9 +70,7 @@ def create_plotter(
     plotter = pv.Plotter(
         off_screen=off_screen,
         lighting="light_kit",
-        window_size=window_size,
-        border=True,
-        border_color=background_r,
+        window_size=window_size
     )
     plotter.camera_position = initial_cpo
     plotter.background_color = background
@@ -228,11 +224,12 @@ def save_plotter(
 def three_d_plot(
     mesh: Union[PolyData, UnstructuredGrid, MultiBlock],
     key: str,
+    filename: Optional[str] = None,
+    jupyter: bool = False,
     off_screen: bool = False,
     window_size: tuple = (1024, 768),
-    background: str = "black",
-    background_r: str = "white",
-    ambient: float = 0.3,
+    background: str = "white",
+    ambient: float = 0.5,
     opacity: float = 1.0,
     initial_cpo: Union[str, tuple] = "iso",
     legend_loc: Literal[
@@ -246,7 +243,6 @@ def three_d_plot(
         "center",
     ] = "lower right",
     legend_size: tuple = (0.1, 0.1),
-    filename: Optional[str] = None,
     view_up: tuple = (0.5, 0.5, 1),
     framerate: int = 15,
     plotter_filename: Optional[str] = None,
@@ -256,10 +252,14 @@ def three_d_plot(
     Args:
         mesh: A reconstructed mesh.
         key: The key under which are the labels.
+        filename: Filename of output file. Writer type is inferred from the extension of the filename.
+                * Output an image file, please enter a filename ending with `.png`, `.tif`, `.tiff`, `.bmp`, `.jpeg`, `.jpg`.
+                * Output a gif file, please enter a filename ending with `.gif`.
+                * Output a mp4 file, please enter a filename ending with `.mp4`.
+        jupyter: Whether to plot in jupyter notebook.
         off_screen: Renders off-screen when True. Useful for automated screenshots.
         window_size: Window size in pixels. The default window_size is `[1024, 768]`.
         background: The background color of the window.
-        background_r: A color that is clearly different from the background color.
         ambient: When lighting is enabled, this is the amount of light in the range of 0 to 1 (default 0.0) that reaches
                  the actor when not directed at the light source emitted from the viewer.
         opacity: Opacity of the mesh. If a single float value is given, it will be the global opacity of the mesh and
@@ -280,10 +280,6 @@ def three_d_plot(
                 * `'center'`
         legend_size: The size of the legend in the window. Two float sequence, each float between 0 and 1.
                      E.g.: (0.1, 0.1) would make the legend 10% the size of the entire figure window.
-        filename: Filename of output file. Writer type is inferred from the extension of the filename.
-                * Output an image file, please enter a filename ending with `.png`, `.tif`, `.tiff`, `.bmp`, `.jpeg`, `.jpg`.
-                * Output a gif file, please enter a filename ending with `.gif`.
-                * Output a mp4 file, please enter a filename ending with `.mp4`.
         view_up: The normal to the orbital plane. Only available when filename ending with `.mp4` or `.gif`.
         framerate: Frames per second. Only available when filename ending with `.mp4` or `.gif`.
         plotter_filename: The filename of the file where the plotter is saved. Writer type is inferred from the extension of the filename.
@@ -302,7 +298,6 @@ def three_d_plot(
         off_screen=off_screen,
         window_size=window_size,
         background=background,
-        background_r=background_r,
         ambient=ambient,
         opacity=opacity,
         initial_cpo=initial_cpo,
@@ -315,14 +310,14 @@ def three_d_plot(
         off_screen=True,
         window_size=window_size,
         background=background,
-        background_r=background_r,
         ambient=ambient,
         opacity=opacity,
         initial_cpo=initial_cpo,
         legend_loc=legend_loc,
         legend_size=legend_size,
     )
-    p2.camera_position = p1.show(return_cpos=True)
+    jupyter_backend = 'panel' if jupyter is True else None
+    p2.camera_position = p1.show(return_cpos=True, jupyter_backend=jupyter_backend)
 
     # Save the plotting object.
     if plotter_filename is not None:

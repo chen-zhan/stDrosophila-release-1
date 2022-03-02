@@ -1,12 +1,11 @@
 import warnings
 
 import numpy as np
-import pandas as pd
 import pyvista as pv
 import vtk
 
 from pyvista import PolyData, UnstructuredGrid
-from typing import List, Union
+from typing import List
 
 try:
     from typing import Literal
