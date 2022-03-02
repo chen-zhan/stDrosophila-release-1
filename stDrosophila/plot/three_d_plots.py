@@ -21,6 +21,8 @@ def create_plotter(
     background: str = "white",
     ambient: float = 0.3,
     opacity: float = 1.0,
+    style: Literal["points", "surface", "volume"] = "surface",
+    point_size: float = 5.0,
     initial_cpo: Union[str, tuple, list] = "iso",
     legend_loc: Literal[
         "upper right",
@@ -49,6 +51,8 @@ def create_plotter(
                  uniformly applied everywhere - should be between 0 and 1.
                  A string can also be specified to map the scalars range to a predefined opacity transfer function
                  (options include: 'linear', 'linear_r', 'geom', 'geom_r').
+        style: Visualization style of the mesh. One of the following: style='surface', style='volume', style='points'.
+        point_size: Point size of any nodes in the dataset plotted.
         initial_cpo: Camera position of the window. Available `initial_cpo` are:
                 * `'xy'`, `'xz'`, `'yz'`, `'yx'`, `'zx'`, `'zy'`, `'iso'`
                 * Customize a tuple. E.g.: (7, 0, 20.).
@@ -76,11 +80,14 @@ def create_plotter(
     plotter.background_color = background
 
     # Add a mesh to the plotter.
+    mesh_style = "points" if style == "points" else None
     plotter.add_mesh(
         mesh,
         scalars=f"{key}_rgba",
         rgba=True,
         render_points_as_spheres=True,
+        style=mesh_style,
+        point_size=point_size,
         ambient=ambient,
         opacity=opacity,
     )
@@ -231,6 +238,8 @@ def three_d_plot(
     background: str = "white",
     ambient: float = 0.5,
     opacity: float = 1.0,
+    style: Literal["points", "surface", "volume"] = "surface",
+    point_size: float = 5.0,
     initial_cpo: Union[str, tuple] = "iso",
     legend_loc: Literal[
         "upper right",
@@ -248,6 +257,7 @@ def three_d_plot(
     plotter_filename: Optional[str] = None,
 ):
     """
+    Visualize reconstructed 3D meshes.
 
     Args:
         mesh: A reconstructed mesh.
@@ -266,6 +276,8 @@ def three_d_plot(
                  uniformly applied everywhere - should be between 0 and 1.
                  A string can also be specified to map the scalars range to a predefined opacity transfer function
                  (options include: 'linear', 'linear_r', 'geom', 'geom_r').
+        style: Visualization style of the mesh. One of the following: style='surface', style='volume', style='points'.
+        point_size: Point size of any nodes in the dataset plotted.
         initial_cpo: Camera position of the window. Available `initial_cpo` are:
                 * `'xy'`, `'xz'`, `'yz'`, `'yx'`, `'zx'`, `'zy'`, `'iso'`
                 * Customize a tuple. E.g.: (7, 0, 20.).
@@ -300,6 +312,8 @@ def three_d_plot(
         background=background,
         ambient=ambient,
         opacity=opacity,
+        style=style,
+        point_size=point_size,
         initial_cpo=initial_cpo,
         legend_loc=legend_loc,
         legend_size=legend_size,
@@ -312,11 +326,29 @@ def three_d_plot(
         background=background,
         ambient=ambient,
         opacity=opacity,
+        style=style,
+        point_size=point_size,
         initial_cpo=initial_cpo,
         legend_loc=legend_loc,
         legend_size=legend_size,
     )
-    jupyter_backend = 'panel' if jupyter is True else None
+    if jupyter is True:
+        jupyter_backend = 'panel'
+        bg_rgb = mpl.colors.to_rgb(background)
+        text_rgb = (1 - bg_rgb[0], 1 - bg_rgb[1], 1 - bg_rgb[2])
+        p1.add_text(
+            "The way to control 3D images in jupyter notebook is as follows:"
+            "   CTRL Left Mouse spins the camera around its view plane normal;"
+            "   SHIFT Left Mouse pans the camera; "
+            "   CTRL SHIFT Left Mouse dollies (a positional zoom) the camera;"
+            "   Left mouse button dollies the camera."
+            "Tips: Widgets cannot be used in jupyter notebook. "
+            "      To use widgets, please use them in edition (such as PyCharm).",
+            font_size=12, color=text_rgb,
+        )
+    else:
+        jupyter_backend = None
+
     p2.camera_position = p1.show(return_cpos=True, jupyter_backend=jupyter_backend)
 
     # Save the plotting object.

@@ -1,25 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="61e1ef9d-ad17-43aa-9d63-ca559ae27ded" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/key_tutorial/three_d_analysis/three_d_reconstruction_1.ipynb" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/key_tutorial/three_d_analysis/three_d_reconstruction_2.ipynb" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/key_tutorial/three_d_analysis/three_d_reconstruction_3.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/deployment.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/key_tutorial/three_d_analysis/1_create_body_surface.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/key_tutorial/three_d_analysis/2_create_tissues_surface.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/key_tutorial/three_d_analysis/3_pick_interesting_part.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/key_tutorial/three_d_analysis/4_merge_mesh.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/key_tutorial/three_d_analysis/5_slicing.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
+    <list default="true" id="61e1ef9d-ad17-43aa-9d63-ca559ae27ded" name="Changes" comment="update">
+      <change beforePath="$PROJECT_DIR$/key_tutorial/three_d_analysis/three_d_reconstruction_1.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/key_tutorial/three_d_analysis/three_d_reconstruction_1.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/key_tutorial/three_d_analysis/three_d_reconstruction_2.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/key_tutorial/three_d_analysis/three_d_reconstruction_2.ipynb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/stDrosophila/plot/three_d_plots.py" beforeDir="false" afterPath="$PROJECT_DIR$/stDrosophila/plot/three_d_plots.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/stDrosophila/preprocessing/convert_binsize.py" beforeDir="false" afterPath="$PROJECT_DIR$/stDrosophila/preprocessing/convert_binsize.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/stDrosophila/preprocessing/crop_mtx_byUgenes.py" beforeDir="false" afterPath="$PROJECT_DIR$/stDrosophila/preprocessing/crop_mtx_byUgenes.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/stDrosophila/tools/three_d_reconstruction/morphology_analysis.py" beforeDir="false" afterPath="$PROJECT_DIR$/stDrosophila/tools/three_d_reconstruction/morphology_analysis.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/stDrosophila/tools/three_d_reconstruction/picking.py" beforeDir="false" afterPath="$PROJECT_DIR$/stDrosophila/tools/three_d_reconstruction/picking.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stDrosophila/tools/three_d_reconstruction/reconstruct_mesh.py" beforeDir="false" afterPath="$PROJECT_DIR$/stDrosophila/tools/three_d_reconstruction/reconstruct_mesh.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -30,6 +16,7 @@
     <option name="RECENT_TEMPLATES">
       <list>
         <option value="Jupyter Notebook" />
+        <option value="Python Script" />
       </list>
     </option>
   </component>
@@ -57,6 +44,35 @@
       <recent name="$PROJECT_DIR$/key_tutorial/three_d_analysis" />
     </key>
   </component>
+  <component name="RunManager">
+    <configuration name="test" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="stDrosophila-release" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/stDrosophila/plot" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/stDrosophila/plot/test.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Python.test" />
+      </list>
+    </recent_temporary>
+  </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
@@ -65,8 +81,16 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1646147618620</updated>
-      <workItem from="1646147894960" duration="13744000" />
+      <workItem from="1646147894960" duration="19688000" />
     </task>
+    <task id="LOCAL-00001" summary="update">
+      <created>1646187144830</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1646187144830</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -82,5 +106,12 @@
         </entry>
       </map>
     </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="update" />
+    <option name="LAST_COMMIT_MESSAGE" value="update" />
+  </component>
+  <component name="com.intellij.coverage.CoverageDataManagerImpl">
+    <SUITE FILE_PATH="coverage/stDrosophila_release$test.coverage" NAME="test Coverage Results" MODIFIED="1646192003528" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/stDrosophila/plot" />
   </component>
 </project>

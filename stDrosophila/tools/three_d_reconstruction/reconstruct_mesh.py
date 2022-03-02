@@ -51,8 +51,8 @@ def construct_pcd(
 
     Args:
         adata: AnnData object.
-        coordsby: The key from adata.obsm whose value will be used to reconstruct the 3D structure.
-        groupby: The key of the observations grouping to consider.
+        coordsby: The key that stores 3D coordinate information in adata.obsm.
+        groupby: The key that stores clustering or annotation information in adata.obs, or a gene name in adata.var.
         key_added: The key under which to add the labels.
         mask: The part that you don't want to be displayed.
         colormap: Colors to use for plotting pcd. The default pcd_cmap is `'rainbow'`.
@@ -62,8 +62,8 @@ def construct_pcd(
     Returns:
         pcd: A point cloud, which contains the following properties:
             `pcd.point_data["obs_index"]`, the obs_index of each coordinate in the original adata.
-            `pcd.point_data[key_added]`, the `groupby` array;
-            `pcd.point_data[f'{key_added}_rgba']`, the rgba colors of the labels.
+            `pcd.point_data[key_added]`, the key of pcd.point_data which stores `groupby` information.
+            `pcd.point_data[f'{key_added}_rgba']`, the rgba colors of the `groupby` information.
     """
 
     # create an initial pcd.
@@ -163,11 +163,11 @@ def construct_surface(
     Returns:
         uniform_surf: A reconstructed surface mesh, which contains the following properties:
             `surf.point_data[key_added]`, the "surface" array;
-            `surf.point_data[f'{key_added}_rgba']`, the rgba colors of the labels.
+            `surf.point_data[f'{key_added}_rgba']`, the rgba colors of the "surface" array.
         clipped_pcd: A point cloud, which contains the following properties:
             `clipped_pcd.point_data["obs_index"]`, the obs_index of each coordinate in the original adata.
-            `clipped_pcd.point_data[key_added]`, the `groupby` array;
-            `clipped_pcd.point_data[f'{key_added}_rgba']`, the rgba colors of the labels.
+            `clipped_pcd.point_data[key_added]`, store `groupby` information.
+            `clipped_pcd.point_data[f'{key_added}_rgba']`, the rgba colors of the `groupby` information.
     """
 
     _cs_method_args = {
@@ -317,7 +317,7 @@ def construct_volume(
     Returns:
         volume: A reconstructed volumetric mesh, which contains the following properties:
             `volume.point_data[key_added]`, the "volume" array;
-            `volume.point_data[f'{key_added}_rgba']`,  the rgba colors of the labels.
+            `volume.point_data[f'{key_added}_rgba']`,  the rgba colors of the "volume" array.
 
     """
 
