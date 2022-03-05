@@ -1,14 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="61e1ef9d-ad17-43aa-9d63-ca559ae27ded" name="Changes" comment="update">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/key_tutorial/three_d_analysis/three_d_reconstruction_1.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/key_tutorial/three_d_analysis/three_d_reconstruction_1.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/key_tutorial/three_d_analysis/three_d_reconstruction_2.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/key_tutorial/three_d_analysis/three_d_reconstruction_2.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/stDrosophila/plot/three_d_plots.py" beforeDir="false" afterPath="$PROJECT_DIR$/stDrosophila/plot/three_d_plots.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/stDrosophila/tools/three_d_reconstruction/reconstruct_mesh.py" beforeDir="false" afterPath="$PROJECT_DIR$/stDrosophila/tools/three_d_reconstruction/reconstruct_mesh.py" afterDir="false" />
-    </list>
+    <list default="true" id="61e1ef9d-ad17-43aa-9d63-ca559ae27ded" name="Changes" comment="update" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -110,6 +103,7 @@
       <workItem from="1646215596523" duration="18164000" />
       <workItem from="1646296185562" duration="4920000" />
       <workItem from="1646450751539" duration="623000" />
+      <workItem from="1646484127137" duration="5000" />
     </task>
     <task id="LOCAL-00001" summary="update">
       <created>1646187144830</created>
@@ -148,13 +142,14 @@
         </entry>
       </map>
     </option>
+    <option name="oldMeFiltersMigrated" value="true" />
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="update" />
     <option name="LAST_COMMIT_MESSAGE" value="update" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/stDrosophila_release$test.coverage" NAME="test Coverage Results" MODIFIED="1646192003528" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/stDrosophila/plot" />
     <SUITE FILE_PATH="coverage/stDrosophila_release$test__1_.coverage" NAME="test (1) Coverage Results" MODIFIED="1646298184676" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/key_tutorial/three_d_analysis" />
+    <SUITE FILE_PATH="coverage/stDrosophila_release$test.coverage" NAME="test Coverage Results" MODIFIED="1646192003528" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/stDrosophila/plot" />
   </component>
 </project>

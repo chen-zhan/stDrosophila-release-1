@@ -1,8 +1,8 @@
+
 import gzip
 import io
 import logging as logg
 import re
-import requests
 import time
 
 import numpy as np
@@ -188,7 +188,6 @@ def anno_flyatlas2(
         raise ValueError(f"Type of gene name must be one of {avail_gene_nametypes}.")
 
     adata = adata.copy() if copy else adata
-    adata._sanitize()
     # The groups for which to be annotated
     group_names = adata.uns[key]["names"].dtype.names if groups is None else groups
     key_added = "marker_genes_anno" if key_added is None else key_added
