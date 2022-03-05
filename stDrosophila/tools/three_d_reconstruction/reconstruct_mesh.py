@@ -61,9 +61,9 @@ def construct_pcd(
 
     Returns:
         pcd: A point cloud, which contains the following properties:
-            `pcd.cell_data["obs_index"]`, the obs_index of each coordinate in the original adata.
-            `pcd.cell_data[key_added]`, the key of pcd.point_data which stores `groupby` information.
-            `pcd.cell_data[f'{key_added}_rgba']`, the rgba colors of the `groupby` information.
+            `pcd.point_data[key_added]`, the `groupby` information.
+            `pcd.point_data[f'{key_added}_rgba']`, the rgba colors of the `groupby` information.
+            `pcd.point_data["obs_index"]`, the obs_index of each coordinate in the original adata.
     """
 
     # create an initial pcd.
@@ -71,9 +71,6 @@ def construct_pcd(
     if isinstance(bucket_xyz, DataFrame):
         bucket_xyz = bucket_xyz.values
     pcd = pv.PolyData(bucket_xyz)
-
-    # The obs_index of each coordinate in the original adata.
-    pcd.cell_data["obs_index"] = adata.obs_names.to_numpy()
 
     # The`groupby` array in original adata.obs or adata.X
     mask_list = mask if isinstance(mask, list) else [mask]
@@ -96,9 +93,13 @@ def construct_pcd(
         mesh=pcd,
         labels=groups,
         key_added=key_added,
+        where="point_data",
         colormap=colormap,
         alphamap=alphamap,
     )
+
+    # The obs_index of each coordinate in the original adata.
+    pcd.point_data["obs_index"] = adata.obs_names.to_numpy()
 
     return pcd
 
@@ -126,7 +127,7 @@ def voxelize_pcd(
 
     # add labels
     for key in pcd.array_names:
-        v_pcd.cell_data[key] = pcd.cell_data[key]
+        v_pcd.cell_data[key] = pcd.point_data[key]
 
     return v_pcd
 
@@ -170,9 +171,9 @@ def construct_surface(
             `surf.cell_data[key_added]`, the "surface" array;
             `surf.cell_data[f'{key_added}_rgba']`, the rgba colors of the "surface" array.
         clipped_pcd: A point cloud, which contains the following properties:
-            `clipped_pcd.cell_data["obs_index"]`, the obs_index of each coordinate in the original adata.
-            `clipped_pcd.cell_data[key_added]`, store `groupby` information.
-            `clipped_pcd.cell_data[f'{key_added}_rgba']`, the rgba colors of the `groupby` information.
+            `clipped_pcd.point_data["obs_index"]`, the obs_index of each coordinate in the original adata.
+            `clipped_pcd.point_data[key_added]`, the `groupby` information.
+            `clipped_pcd.point_data[f'{key_added}_rgba']`, the rgba colors of the `groupby` information.
     """
 
     _cs_method_args = {
@@ -291,6 +292,7 @@ def construct_surface(
         mesh=uniform_surf,
         labels=labels,
         key_added=key_added,
+        where="cell_data",
         colormap=color,
         alphamap=alpha,
     )
@@ -332,7 +334,12 @@ def construct_volume(
     # Add labels and the colormap of the volumetric mesh
     labels = np.array(["volume"] * volume.n_cells).astype(str)
     volume = add_mesh_labels(
-        mesh=volume, labels=labels, key_added=key_added, colormap=color, alphamap=alpha
+        mesh=volume,
+        labels=labels,
+        key_added=key_added,
+        where="cell_data",
+        colormap=color,
+        alphamap=alpha,
     )
 
     return volume
@@ -342,6 +349,7 @@ def add_mesh_labels(
     mesh: Union[PolyData, UnstructuredGrid],
     labels: np.ndarray,
     key_added: str = "groups",
+    where: Literal["point_data", "cell_data"] = "cell_data",
     colormap: Union[str, list] = None,
     alphamap: Union[float, list] = None,
     mask_color: Optional[str] = "gainsboro",
@@ -354,14 +362,15 @@ def add_mesh_labels(
         mesh: A reconstructed mesh.
         labels: An array of labels of interest.
         key_added: The key under which to add the labels.
+        where: The location where the label information is recorded in the mesh.
         colormap: Colors to use for plotting data.
         alphamap: The opacity of the color to use for plotting data.
         mask_color: Color to use for plotting mask information.
         mask_alpha: The opacity of the color to use for plotting mask information.
     Returns:
          A mesh, which contains the following properties:
-            `mesh.cell_data[key_added]`, the labels array;
-            `mesh.cell_data[f'{key_added}_rgba']`, the rgba colors of the labels.
+            `mesh.cell_data[key_added]` or `mesh.point_data[key_added]`, the labels array;
+            `mesh.cell_data[f'{key_added}_rgba']` or `mesh.point_data[f'{key_added}_rgba']`, the rgba colors of the labels.
     """
 
     cu_arr = np.unique(labels)
@@ -393,10 +402,16 @@ def add_mesh_labels(
             cu_dict[t] = mpl.colors.to_rgba(c, alpha=a)
 
     # Added labels and rgba of the labels
-    mesh.cell_data[key_added] = labels
-    mesh.cell_data[f"{key_added}_rgba"] = np.array(
-        [cu_dict[g] for g in labels]
-    ).astype(np.float64)
+    if where == "point_data":
+        mesh.point_data[key_added] = labels
+        mesh.point_data[f"{key_added}_rgba"] = np.array(
+            [cu_dict[g] for g in labels]
+        ).astype(np.float64)
+    else:
+        mesh.cell_data[key_added] = labels
+        mesh.cell_data[f"{key_added}_rgba"] = np.array(
+            [cu_dict[g] for g in labels]
+        ).astype(np.float64)
 
     return mesh
 
@@ -450,10 +465,12 @@ def save_mesh(
     Args:
         mesh: A reconstructed mesh.
         filename: Filename of output file. Writer type is inferred from the extension of the filename.
-        binary: If True, write as binary. Otherwise, write as ASCII. Binary files write much faster than ASCII and have a smaller file size.
+        binary: If True, write as binary. Otherwise, write as ASCII.
+                Binary files write much faster than ASCII and have a smaller file size.
         texture: Write a single texture array to file when using a PLY file.
                  Texture array must be a 3 or 4 component array with the datatype np.uint8.
-                 Array may be a cell array or a point array, and may also be a string if the array already exists in the PolyData.
+                 Array may be a cell array or a point array,
+                 and may also be a string if the array already exists in the PolyData.
                  If a string is provided, the texture array will be saved to disk as that name.
                  If an array is provided, the texture array will be saved as 'RGBA'
     """

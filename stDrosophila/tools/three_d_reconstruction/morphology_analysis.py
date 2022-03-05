@@ -1,4 +1,3 @@
-
 from pyvista import PolyData, UnstructuredGrid
 from sklearn.neighbors import KernelDensity
 from typing import Union, Tuple
