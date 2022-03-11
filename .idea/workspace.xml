@@ -1,7 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="61e1ef9d-ad17-43aa-9d63-ca559ae27ded" name="Changes" comment="update" />
+    <list default="true" id="61e1ef9d-ad17-43aa-9d63-ca559ae27ded" name="Changes" comment="update">
+      <change afterPath="$PROJECT_DIR$/stDrosophila/preprocessing/alignment_ssdna/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/stDrosophila/preprocessing/alignment_ssdna/afterPS.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/stDrosophila/preprocessing/alignment_ssdna/beforePS.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stDrosophila/preprocessing/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/stDrosophila/preprocessing/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/stDrosophila/preprocessing/convert_binsize.py" beforeDir="false" afterPath="$PROJECT_DIR$/stDrosophila/preprocessing/binsize_transfer.py" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -17,6 +24,7 @@
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+    <option name="UPDATE_TYPE" value="REBASE" />
   </component>
   <component name="MarkdownSettingsMigration">
     <option name="stateVersion" value="1" />
@@ -31,12 +39,17 @@
     <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
     <property name="WebServerToolWindowFactoryState" value="true" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/key_tutorial/three_d_analysis" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/../BGIpy37_pytorch113" />
     <property name="settings.editor.selected.configurable" value="org.jetbrains.plugins.notebooks.jupyter.connections.configuration.JupyterServerConfigurable" />
   </component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/stDrosophila/preprocessing/alignment_ssdna" />
+      <recent name="$PROJECT_DIR$/stDrosophila/preprocessing" />
       <recent name="$PROJECT_DIR$/key_tutorial/three_d_analysis" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/stDrosophila/preprocessing" />
     </key>
   </component>
   <component name="RunManager" selected="Python.test (1)">
@@ -103,7 +116,10 @@
       <workItem from="1646215596523" duration="18164000" />
       <workItem from="1646296185562" duration="4920000" />
       <workItem from="1646450751539" duration="623000" />
-      <workItem from="1646484127137" duration="5000" />
+      <workItem from="1646451437004" duration="7852000" />
+      <workItem from="1646644277441" duration="2017000" />
+      <workItem from="1646723804853" duration="622000" />
+      <workItem from="1646817526983" duration="626000" />
     </task>
     <task id="LOCAL-00001" summary="update">
       <created>1646187144830</created>
@@ -126,7 +142,14 @@
       <option name="project" value="LOCAL" />
       <updated>1646208734036</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="update">
+      <created>1646451472576</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1646451472576</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -142,14 +165,13 @@
         </entry>
       </map>
     </option>
-    <option name="oldMeFiltersMigrated" value="true" />
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="update" />
     <option name="LAST_COMMIT_MESSAGE" value="update" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/stDrosophila_release$test__1_.coverage" NAME="test (1) Coverage Results" MODIFIED="1646298184676" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/key_tutorial/three_d_analysis" />
     <SUITE FILE_PATH="coverage/stDrosophila_release$test.coverage" NAME="test Coverage Results" MODIFIED="1646192003528" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/stDrosophila/plot" />
+    <SUITE FILE_PATH="coverage/stDrosophila_release$test__1_.coverage" NAME="test (1) Coverage Results" MODIFIED="1646298184676" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/key_tutorial/three_d_analysis" />
   </component>
 </project>

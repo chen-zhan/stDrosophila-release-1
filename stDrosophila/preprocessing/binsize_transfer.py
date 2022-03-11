@@ -1,23 +1,17 @@
+
 import pandas as pd
 
 
-def bin1tobinx(bin1_data, binx=None, save=None):
+def bin1tobinx(bin1_data, binx=None, save=None) -> pd.DataFrame:
     """
     Converts bin size from 1 to other bin size.
 
-    Parameters
-    ----------
-    bin1_data:
-        bin1 lasso data.
-    binx: `int` (default: `None`)
-        The size of bin after conversion.
-    save: `str` (default: `None`)
-        If save is not None, save is the path to save the lasso data.
-
-    Examples
-    --------
-    >> bin1_data = pd.read_csv(r"bin1_lasso.txt", sep="\t")
-    >> bin5_data = bin1tobinx(bin1_data, binx=5, save="bin5_lasso.gem.gz")
+    Args:
+        bin1_data: bin1 lasso data.
+        binx: The size of bin after conversion.
+        save: If save is not None, save is the path to save the lasso data.
+    Returns:
+        Binx lasso data.
     """
 
     bin1_data["x"] = (bin1_data["x"] / binx).astype(int) * binx
@@ -34,22 +28,18 @@ def bin1tobinx(bin1_data, binx=None, save=None):
     return binx_data
 
 
-def binxtobiny(binx_data, bin1_data, binx=None, biny=1, save=None):
+def binxtobiny(binx_data, bin1_data, binx=None, biny=1, save=None) -> pd.DataFrame:
     """
     Converts bin size from x to 1.
 
-    Parameters
-    ----------
-    binx_data:
-        binx lasso data.
-    bin1_data：
-        bin1 lasso data.
-    binx: `int` (default: `None`)
-        The size of bin before conversion.
-    biny: `int` (default: `None`)
-        The size of bin after conversion.
-    save: `str` (default: `None`)
-        If save is not None, save is the path to save the lasso data.
+    Args:
+        binx_data: binx lasso data.
+        bin1_data：bin1 lasso data.
+        binx: The size of bin before conversion.
+        biny: The size of bin after conversion.
+        save: If save is not None, save is the path to save the lasso data.
+    Returns:
+        Biny lasso data.
     """
 
     binx_coords = binx_data.loc[:, ["x", "y"]].drop_duplicates()
@@ -70,3 +60,13 @@ def binxtobiny(binx_data, bin1_data, binx=None, biny=1, save=None):
         if save is not None:
             bin1_need.to_csv(save, index=False, sep="\t")
         return bin1_need
+
+
+if __name__ == '__main__':
+    binx_data = read_bgi_as_dataframe(
+        path="/media/yao/Elements SE/BGI_Paper/mouse_brain/stereo/day3_brain_0110/1_Crop/new_crop/cropped_data/day3_1_bin5.txt.gz")
+
+    bin1_data = read_bgi_as_dataframe(path="/media/yao/Elements SE/BGI_Paper/mouse_brain/stereo/day3_brain_0110/lasso_bin1/day3_1.txt")
+
+    binxtobiny(binx_data, bin1_data, binx=5, biny=1,
+               save="/media/yao/Elements SE/BGI_Paper/mouse_brain/stereo/day3_brain_0110/1_Crop/new_crop/cropped_data/day3_1_bin1.txt.gz")
