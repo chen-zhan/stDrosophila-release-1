@@ -1,14 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="61e1ef9d-ad17-43aa-9d63-ca559ae27ded" name="Changes" comment="update">
-      <change afterPath="$PROJECT_DIR$/stDrosophila/preprocessing/alignment_ssdna/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/stDrosophila/preprocessing/alignment_ssdna/afterPS.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/stDrosophila/preprocessing/alignment_ssdna/beforePS.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/stDrosophila/preprocessing/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/stDrosophila/preprocessing/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/stDrosophila/preprocessing/convert_binsize.py" beforeDir="false" afterPath="$PROJECT_DIR$/stDrosophila/preprocessing/binsize_transfer.py" afterDir="false" />
-    </list>
+    <list default="true" id="61e1ef9d-ad17-43aa-9d63-ca559ae27ded" name="Changes" comment="update" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -120,6 +113,7 @@
       <workItem from="1646644277441" duration="2017000" />
       <workItem from="1646723804853" duration="622000" />
       <workItem from="1646817526983" duration="626000" />
+      <workItem from="1648002712138" duration="5000" />
     </task>
     <task id="LOCAL-00001" summary="update">
       <created>1646187144830</created>
