@@ -1,4 +1,3 @@
-
 import pandas as pd
 
 
@@ -60,13 +59,3 @@ def binxtobiny(binx_data, bin1_data, binx=None, biny=1, save=None) -> pd.DataFra
         if save is not None:
             bin1_need.to_csv(save, index=False, sep="\t")
         return bin1_need
-
-
-if __name__ == '__main__':
-    binx_data = read_bgi_as_dataframe(
-        path="/media/yao/Elements SE/BGI_Paper/mouse_brain/stereo/day3_brain_0110/1_Crop/new_crop/cropped_data/day3_1_bin5.txt.gz")
-
-    bin1_data = read_bgi_as_dataframe(path="/media/yao/Elements SE/BGI_Paper/mouse_brain/stereo/day3_brain_0110/lasso_bin1/day3_1.txt")
-
-    binxtobiny(binx_data, bin1_data, binx=5, biny=1,
-               save="/media/yao/Elements SE/BGI_Paper/mouse_brain/stereo/day3_brain_0110/1_Crop/new_crop/cropped_data/day3_1_bin1.txt.gz")

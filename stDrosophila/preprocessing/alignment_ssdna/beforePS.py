@@ -15,35 +15,14 @@ import pandas as pd
 from matplotlib.widgets import LassoSelector
 from matplotlib.path import Path
 
-from typing import Optional
+from typing import Optional, Tuple
 
 try:
     from typing import Literal
 except ImportError:
     from typing_extensions import Literal
 
-
-def read_bgi_as_dataframe(path: str) -> pd.DataFrame:
-    """Read a BGI read file as a pandas DataFrame.
-
-    Args:
-        path: Path to read file.
-
-    Returns:
-        Pandas Dataframe with column names `gene`, `x`, `y`, `total` and
-        additionally `spliced` and `unspliced` if splicing counts are present.
-    """
-    return pd.read_csv(
-        path,
-        sep="\t",
-        dtype={
-            "geneID": "category",  # geneID
-            "x": np.uint32,  # x
-            "y": np.uint32,  # y
-            "MIDCounts": np.uint16,  # total
-        },
-        comment="#",
-    )
+from .utils import read_bgi_as_dataframe, output_img
 
 
 class SelectFromCollection:
@@ -80,11 +59,13 @@ class SelectFromCollection:
         # Ensure that we have separate colors for each object
         self.fc = collection.get_facecolors()
         if len(self.fc) == 0:
-            raise ValueError('Collection must have a facecolor')
+            raise ValueError("Collection must have a facecolor")
         elif len(self.fc) == 1:
             self.fc = np.tile(self.fc, (self.Npts, 1))
 
-        self.lasso = LassoSelector(ax, onselect=self.onselect, props=dict(color="black"))
+        self.lasso = LassoSelector(
+            ax, onselect=self.onselect, props=dict(color="black")
+        )
         self.ind = []
 
     def onselect(self, verts):
@@ -106,7 +87,7 @@ def lasso_2d(
     coords: np.ndarray,
     values: Optional[np.ndarray] = None,
     cmap: str = "viridis",
-    point_size: int = 10
+    point_size: int = 10,
 ) -> np.ndarray:
     """
     Pick the interested part of coordinates by interactive approach.
@@ -125,13 +106,16 @@ def lasso_2d(
     Returns:
         select_points: The coordinates of the last selected points.
     """
+
     def fig_set():
-        mpl.use('TkAgg')
-        fig, ax = plt.subplots(subplot_kw=dict(
-            xlim=(coords[:, 0].min(), coords[:, 0].max()),
-            ylim=(coords[:, 1].min(), coords[:, 1].max()),
-            autoscale_on=False
-        ))
+        mpl.use("TkAgg")
+        fig, ax = plt.subplots(
+            subplot_kw=dict(
+                xlim=(coords[:, 0].min(), coords[:, 0].max()),
+                ylim=(coords[:, 1].min(), coords[:, 1].max()),
+                autoscale_on=False,
+            )
+        )
         pts = ax.scatter(coords[:, 0], coords[:, 1], s=point_size, c=values, cmap=cmap)
         ax.set_title("Press enter to accept selected points.")
         return fig, ax, pts
@@ -181,33 +165,6 @@ def equalhist_transfer(img, method="global", cliplimit=20) -> np.ndarray:
         )
 
 
-def output_img(
-    img: np.ndarray,
-    filename: str = None,
-    window_size: tuple = (1024, 1024),
-    show_img: bool = True
-):
-    """
-    Output the image matrix as a 2D image file.
-
-    Args:
-        img：Image matrix.
-        filename: Output image filename, the end of which can be .bmp, .dib, .jpeg, .jpg, .jpe, .png, .webp, .pbm,
-                  .pgm, .ppm, .pxm, .pnm, .sr, .ras, .tiff, .tif, .exr, .hdr, .pic, etc.
-        window_size: The size of the image visualization window.
-        show_img: Whether to create a window to display the image.
-    """
-
-    if show_img:
-        cv2.namedWindow("Image", cv2.WINDOW_NORMAL | cv2.WINDOW_KEEPRATIO)
-        cv2.resizeWindow("Image", window_size[0], window_size[1])
-        cv2.imshow("Image", img)
-    if filename is not None:
-        cv2.imwrite(filename=filename, img=img)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-
-
 def lasso_pre(
     path: str,
     lasso: bool = True,
@@ -218,7 +175,7 @@ def lasso_pre(
     show: bool = True,
     save_img: Optional[str] = None,
     save_lasso: Optional[str] = None,
-):
+) -> Tuple[pd.DataFrame, np.ndarray]:
     """
     Preprocessing of original lasso data.
 
@@ -249,19 +206,23 @@ def lasso_pre(
     )
 
     if lasso:
-        select_coords = lasso_2d(coords=coords_data[["x", "y"]].values, values=coords_data["MIDCounts"].values)
+        select_coords = lasso_2d(
+            coords=coords_data[["x", "y"]].values,
+            values=coords_data["MIDCounts"].values,
+        )
         select_coords = pd.DataFrame(select_coords, columns=["x", "y"])
         lasso_data = pd.merge(data, select_coords, on=["x", "y"], how="inner")
     else:
-        lasso_data = data
+        select_coords = coords_data.copy()
+        lasso_data = data.copy()
 
     if save_lasso is not None:
         lasso_data.to_csv(save_lasso, sep="\t", index=False)
 
     # Create lasso image matrix.
     img = pd.pivot_table(
-            lasso_data, index=["y"], columns=["x"], values="MIDCounts", fill_value=0
-        ).values.astype(np.uint8)
+        select_coords, index=["x"], columns=["y"], values="MIDCounts", fill_value=0
+    ).values.astype(np.uint8)
 
     #  Increasing the value in the grayscale image.
     img = img * gray_factor
@@ -274,3 +235,5 @@ def lasso_pre(
     img = cv2.bitwise_not(src=img) if color_flip else img
 
     output_img(img=img, filename=save_img, show_img=show)
+
+    return lasso_data, img
