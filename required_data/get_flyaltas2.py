@@ -1,8 +1,12 @@
+#Use this script to download flyaltas2 data from a networked environment
+#Or find in BGI Linux()
+#The data is applied to the annotation organization
+
 import logging as logg
 import requests
-
 import pandas as pd
-
+import numpy as np
+import os
 from typing import Tuple
 
 
@@ -10,7 +14,6 @@ def flyatlas2(
     fbgn: str = None, stage: str = "male_adult"
 ) -> Tuple[pd.DataFrame, pd.DataFrame] or Tuple[None, None]:
     """For a particular Drosophila gene, find the pattern of expression in different tissues.
-
     Parameters
     ----------
     fbgn: `str` (default: `None`)
@@ -20,7 +23,6 @@ def flyatlas2(
             * `'larval'`
             * `'female_adult'`
             * `'male_adult'`
-
     Returns
     -------
     gene_info: `pd.DataFrame`
@@ -79,9 +81,8 @@ def flyatlas2(
             [f"FPKM_{stage}", f"SD_{stage}", f"enrichment_{stage}"]
         ]
         tissue_info = tissue_info.applymap(lambda x: "0" if x == "-" else x)
-        tissue_info[f"enrichment_{stage}"] = tissue_info[f"enrichment_{stage}"].astype(
-            float
-        )
+        tissue_info[f"enrichment_{stage}"] = tissue_info[f"enrichment_{stage}"].apply(lambda x: x.replace(",","",) if "," in x else x)
+        tissue_info[f"enrichment_{stage}"] = tissue_info[f"enrichment_{stage}"].astype(float)
         tissue_info.sort_values(
             by=[f"enrichment_{stage}"], ascending=False, inplace=True
         )
@@ -94,5 +95,16 @@ def flyatlas2(
 
         return None, None
 
-
-gene_info, tissue_info = flyatlas2(fbgn="FBgn0000055", stage="male_adult")
+           
+os.chdir(r"D:\BGI\fly\tissue marker\FlyAltas2")  
+table = pd.read_csv("d:\\BGI\\fly\\tissue marker\\deml_fbgn.tsv.gz", sep="\t")
+for fbgn in table["FBgn"][5339:]:
+        gene_info, tissue_info = flyatlas2(fbgn=fbgn, stage="male_adult")
+        if gene_info is not None and tissue_info is not None:
+            if (os.path.exists(fbgn)):
+                pass
+            else:
+                print(table[table["FBgn"]==fbgn].index)
+                os.mkdir(fbgn)
+                gene_info.to_csv(os.path.abspath(fbgn+"\\gene.csv"))
+                tissue_info.to_csv(os.path.abspath(fbgn+"\\tissue.csv"))

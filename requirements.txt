@@ -10,12 +10,9 @@ geopandas>=0.10.2
 scipy>=1.7.3
 shapely>=1.8.1.post1
 scikit-image>=0.19.2
-requests>=2.27.1
 tqdm>=4.63.0
 scikit-learn>=1.0.2
 vtk>=9.1.0
-scooby>=0.5.11
-intermine>=1.12.0
 typing_extensions>=4.1.1
 open3d>=0.15.2
 pyacvd>=0.2.7
@@ -25,11 +22,6 @@ nudged>=0.3.1
 POT>=0.8.1.0
 scanpy>=1.8.2
 imageio-ffmpeg
-ipyvtklink
-pythreejs
 louvain
 harmonypy
 scanorama
-pytorch
-torch_geometric
-torch_sparse
