@@ -7,6 +7,7 @@ import time
 
 import numpy as np
 import pandas as pd
+import anndata as ad
 
 from anndata import AnnData
 from pandas import DataFrame
@@ -20,7 +21,7 @@ def genes_flyaltas2(
     stage: Optional[str] = "male_adult",
     enrich_threshold: Optional[float] = 1.0,
     fbgn_path: Optional[str] = "deml_fbgn.tsv.gz",
-    Top50_path: Optional[str] = "Top50_path",
+    FlyAtlas_path: Optional[str] = "FlyAtlas_path",
 ) -> pd.DataFrame:
     """
     Annotate a gene list based on the flyaltas2 database
@@ -39,8 +40,8 @@ def genes_flyaltas2(
         Threshold for filtering enrichment in FlyAtlas 2.
     fbgn_path: `str` (default: `'deml_fbgn.tsv.gz'`)
         Absolute path to the deml_fbgn.tsv.gz.
-    Top50_path: `str` 
-        Absolute path to the Top50 special gene of tissue from 
+    FlyAtlas_path: `str` 
+        Absolute path to the required_data/FlyAltas.zip(needed unzip first) 
     Returns
     -------
     anno_genes: `pandas.DataFrame`
@@ -56,7 +57,7 @@ def genes_flyaltas2(
     # Find the particular tissue in which the gene is specifically expressed
     anno_genes = pd.DataFrame()
     for fbgn_name in fbgn_names:
-        particular_tissues = gene2tissue(fbgn_name, stage, enrich_threshold, Top50_path)
+        particular_tissues = gene2tissue(fbgn_name, stage, enrich_threshold, FlyAtlas_path)
         if particular_tissues is not None:
             anno_genes = pd.concat([anno_genes, particular_tissues], axis=0)
 
@@ -92,14 +93,14 @@ def symbol2fbgn(gene: Union[str, list] = None, datapath: Optional[str] = None):
         return fbgn_list
     
 
-def gene2tissue(gene, stage, enrich_threshold, Top50_path):
-    # obtain "gene_info" and "tissue_info" from Top50_path
-    top50_genes=os.listdir(Top50_path)
+def gene2tissue(gene, stage, enrich_threshold, FlyAtlas_path):
+    # obtain "gene_info" and "tissue_info" from FlyAtlas_path
+    top50_genes=os.listdir(FlyAtlas_path)
     if gene not in top50_genes:
         print ("gene no exits in Top50:"+gene)
     else:
-        gene_info_dir = os.path.abspath(Top50_path+"/"+gene+"/gene.csv")
-        tissue_info_dir = os.path.abspath(Top50_path+"/"+gene+"/tissue.csv")
+        gene_info_dir = os.path.abspath(FlyAtlas_path+"/"+gene+"/gene.csv")
+        tissue_info_dir = os.path.abspath(FlyAtlas_path+"/"+gene+"/tissue.csv")
         gene_info=pd.read_csv(gene_info_dir, index_col= 0) if os.path.exists(gene_info_dir) else None
         tissue_info=pd.read_csv(tissue_info_dir, index_col= 0) if os.path.exists(tissue_info_dir) else None
         
@@ -135,6 +136,179 @@ def gene2tissue(gene, stage, enrich_threshold, Top50_path):
             logg.warning(f"No particular tissue for {gene}.")
             return None
         
-###test###
-genes_flyaltas2(genes=["Act88F","CecC"],gene_nametype="symbol", stage="male_adult", 
-                fbgn_path= 'd:\\BGI\\fly\\tissue marker\\deml_fbgn.tsv.gz', Top50_path= 'd:\\BGI\\fly\\tissue marker\\Top50_Data')
+
+
+def get_genesummary(
+    data: DataFrame,
+    geneby: Optional[str] = None,
+    gene_nametype: Optional[str] = "symbol",
+    datapath: Optional[str] = None,
+):
+    """Get gene's summary from FlyBase."""
+    avail_gene_nametypes = {"symbol", "FBgn"}
+    if gene_nametype not in avail_gene_nametypes:
+        raise ValueError(f"Type of gene name must be one of {avail_gene_nametypes}.")
+
+    gene_names = data[geneby].tolist()
+    if gene_nametype is "symbol":
+        gene_names = [symbol2fbgn(gene_name) for gene_name in gene_names]
+
+    with gzip.open(datapath, "rb") as input_file:
+        with io.TextIOWrapper(input_file, encoding="utf-8") as dec:
+            dec_list = [
+                str(i).strip().split("\t")
+                for i in dec.readlines()
+                if i.startswith("#") is False
+            ]
+    summaries = pd.DataFrame(dec_list, columns=["FlyBase ID", "gene_summary"])
+
+    summary_dict = {}
+    for gene_name in gene_names:
+        summary_dict[gene_name] = summaries[summaries["FlyBase ID"] == gene_name][
+            "gene_summary"
+        ].iloc[0]
+
+    data["gene_summary"] = data[geneby].map(lambda g: summary_dict[g])
+
+    return data
+
+
+
+def anno_flyatlas2(
+    adata: AnnData,
+    stage: Optional[str] = "male_adult",
+    gene_nametype: Optional[str] = "symbol",
+    groupby: Optional[str] = None,
+    groups: Union[str, Sequence[str]] = None,
+    n_genes: Optional[int] = 20,
+    enrich_threshold: Optional[float] = 1.0,
+    add_genesummary: bool = True,
+    obs_key: Optional[str] = "auto_anno",
+    key: Optional[str] = "rank_genes_groups",
+    key_added: Optional[str] = "marker_genes_anno",
+    copy: bool = False,
+    gene_summaries_path: Optional[str] = "automated_gene_summaries.tsv.gz",
+    fbgn_path: Optional[str] = "deml_fbgn.tsv.gz",
+    FlyAtlas_path: Optional[str] = "FlyAltas",
+):
+    """\
+    Annotate clustered groups based on FlyAtlas2.
+    Parameters
+    ----------
+    adata: :class:`~anndata.AnnData`
+        A clustered AnnData.
+    stage: `str` (default: `'male_adult'`)
+        The developmental stages of Drosophila melanogaster, including `'larval'`, `'female_adult'` and `'male_adult'`.
+    gene_nametype : `str` (default: `'symbol'`)
+        Type of gene name, including `'symbol'` and `'FBgn'`.
+    groupby: `str` (default: `None`)
+        The key of the observation grouping to consider.
+    groups: `str` (default: `None`)
+        The groups for which to be annotated.
+    n_genes: `int` (default: `20`)
+        The number of genes that annotate groups.
+    enrich_threshold: `float` (default: `1.0`)
+        Threshold for filtering enrichment in FlyAtlas 2.
+    add_genesummary: `bool` (default: `False`)
+        Whether to add summaries of all genes to the output data.
+    obs_key: `str` (default: `'auto_anno'`)
+        The key in `adata.obs` information is saved to.
+    key: `str` (default: `'rank_genes_groups'`)
+        The key of the marker gene stored in the `adata.uns` information.
+    key_added: `str` (default: `'marker_genes_anno'`)
+        The key in `adata.uns` information is saved to.
+    copy: `bool` (default: `False`)
+        Whether to copy adata or modify it inplace.
+    gene_summaries_path: `str` (default: `'automated_gene_summaries.tsv.gz'`)
+        Absolute path to the automated_gene_summaries.tsv.gz.
+    fbgn_path: `str` (default: `deml_fbgn.tsv.gz'`)
+        Absolute path to the deml_fbgn.tsv.gz.
+        Absolute path to the deml_fbgn.tsv.gz.
+    FlyAtlas_path: `str` 
+        Absolute path to the required_data/FlyAltas.zip(needed unzip first)
+    Returns
+    -------
+    adata: `AnnData`
+            :attr:`~anndata.AnnData.uns`\\ `['marker_genes_anno']`
+                The genes and the particular tissues in which the genes are specifically expressed of each group.
+            :attr:`~anndata.AnnData.obs`\\ `['auto_anno']`
+                Automated annotation results.
+    anno_data: `pandas.DataFrame`
+            The genes and the particular tissues in which the genes are specifically expressed of each group.
+    Notes
+    -----
+    The annotation data come from FlyAtlas 2. For more information about FlyAtlas 2, please see <flyatlas2.org>.
+    """
+    avail_stages = {"larval", "female_adult", "male_adult"}
+    if stage not in avail_stages:
+        raise ValueError(
+            f"The developmental stage of Drosophila melanogaster method must be one of {avail_stages}."
+        )
+
+    avail_gene_nametypes = {"symbol", "FBgn"}
+    if gene_nametype not in avail_gene_nametypes:
+        raise ValueError(f"Type of gene name must be one of {avail_gene_nametypes}.")
+
+    adata = adata.copy() if copy else adata
+    # The groups for which to be annotated
+    group_names = adata.uns[key]["names"].dtype.names if groups is None else groups
+    key_added = "marker_genes_anno" if key_added is None else key_added
+    adata.uns[key_added] = {}
+    adata.obs[obs_key] = adata.obs[groupby].astype(str)
+    anno_data = pd.DataFrame()
+
+    for group_name in group_names:
+        # The genes used to annotate groups
+        gene_names = list(adata.uns[key]["names"][group_name][:n_genes])
+        fbgn_names = (
+            symbol2fbgn(gene=gene_names, datapath=fbgn_path)
+            if gene_nametype is "symbol"
+            else gene_names
+        )
+        # Find the particular tissue in which the gene is specifically expressed
+        print(f"----- Start group {group_name}, including {gene_names}")
+        anno_genes = pd.DataFrame()
+        for fbgn_name in fbgn_names:
+            particular_tissues = gene2tissue(fbgn_name, stage, enrich_threshold)
+            if particular_tissues is not None:
+                anno_genes = pd.concat([anno_genes, particular_tissues], axis=0)
+                time.sleep(secs=30)
+        group_name = str(group_name)
+        anno_genes = anno_genes.astype(str)
+        # Add gene annotation information to adata.uns
+        adata.uns[key_added][group_name] = anno_genes
+        # Add gene annotation information to data
+        anno_genes["cluster"] = group_name
+        anno_data = pd.concat([anno_data, anno_genes], axis=0)
+        tissues = [
+            re.sub(r"\(\d*\.\d*\)", "", str(i).strip("[]").split(",")[0].strip("'"))
+            for i in anno_genes["enrichment"].tolist()
+        ]
+        # Add gene annotation information to adata.obs
+        n_tissues = {tissue: tissues.count(tissue) for tissue in tissues}
+        group_tissues = [
+            key for key in n_tissues.keys() if n_tissues[key] == max(n_tissues.values())
+        ]
+        group_anno = ""
+        for i in range(len(group_tissues)):
+            group_anno = (
+                group_anno + group_tissues[i]
+                if i == 0
+                else group_anno + "+" + group_tissues[i]
+            )
+        adata.obs[obs_key] = adata.obs[obs_key].map(
+            lambda c: group_anno if c == group_name else c
+        )
+
+    if add_genesummary:
+        # Add summaries of all genes to the output data.
+        anno_data = get_genesummary(
+            data=anno_data,
+            geneby="FlyBase ID",
+            gene_nametype="FBgn",
+            datapath=gene_summaries_path,
+        )
+
+    return adata, anno_data if copy else None, 
+
+

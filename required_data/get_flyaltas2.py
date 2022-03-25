@@ -1,5 +1,5 @@
 #Use this script to download flyaltas2 data from a networked environment
-#Or find in BGI Linux()
+#Or find in required_data/FlyAltas2.zip, which is about the "male_adult"
 #The data is applied to the annotation organization
 
 import logging as logg
@@ -7,7 +7,7 @@ import requests
 import pandas as pd
 import numpy as np
 import os
-from typing import Tuple
+from typing import Tuple:
 
 
 def flyatlas2(
@@ -98,7 +98,7 @@ def flyatlas2(
            
 os.chdir(r"D:\BGI\fly\tissue marker\FlyAltas2")  
 table = pd.read_csv("d:\\BGI\\fly\\tissue marker\\deml_fbgn.tsv.gz", sep="\t")
-for fbgn in table["FBgn"][5339:]:
+for fbgn in table["FBgn"]:
         gene_info, tissue_info = flyatlas2(fbgn=fbgn, stage="male_adult")
         if gene_info is not None and tissue_info is not None:
             if (os.path.exists(fbgn)):
